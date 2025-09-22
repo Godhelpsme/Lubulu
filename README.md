@@ -20,6 +20,7 @@
 - **PWA**: Service Worker + Web App Manifest
 - **存储**: localStorage + 数据导入导出
 - **安全**: CSP策略 + XSS防护
+
 ## 快速开始
 
 ### 本地运行
@@ -42,7 +43,9 @@ open http://localhost:8000
 - GitHub Pages
 - Netlify  
 - Vercel
-- Cloudflare Pages
+- Cloudflare Pages（推荐）
+
+> 📖 **详细部署教程**：[Cloudflare Pages 部署指南](docs/cloudflare-deployment.md) - 包含完整的部署步骤、自定义域名配置和性能优化
 
 ## 使用说明
 
@@ -105,4 +108,4 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ---
 
-让每一次选择都更有意义 🌟 
+让每一次选择都更有意义 🌟
