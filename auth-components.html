@@ -1,0 +1,127 @@
+<!-- Auth Modal -->
+<div id="authModal" class="modal hidden">
+  <div class="modal-overlay" id="authOverlay"></div>
+  <div class="modal-content auth-modal">
+    <div class="modal-header">
+      <h2 id="authTitle">登录账号</h2>
+      <button id="closeAuthModal" class="close-btn" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Login Form -->
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="loginUsername">用户名</label>
+          <input type="text" id="loginUsername" name="username" required 
+                 placeholder="请输入用户名" maxlength="50">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">密码</label>
+          <input type="password" id="loginPassword" name="password" required 
+                 placeholder="请输入密码" minlength="6" maxlength="128">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="primary-btn" id="loginBtn">
+            <span>登录</span>
+            <div class="loading-spinner hidden"></div>
+          </button>
+          <button type="button" class="link-btn" id="showRegisterForm">还没有账号？立即注册</button>
+        </div>
+      </form>
+
+      <!-- Register Form -->
+      <form id="registerForm" class="auth-form hidden">
+        <div class="form-group">
+          <label for="registerUsername">用户名</label>
+          <input type="text" id="registerUsername" name="username" required 
+                 placeholder="请输入用户名" minlength="3" maxlength="50">
+          <small class="form-hint">3-50个字符，支持字母、数字、下划线</small>
+        </div>
+        <div class="form-group">
+          <label for="registerEmail">邮箱 (可选)</label>
+          <input type="email" id="registerEmail" name="email" 
+                 placeholder="请输入邮箱地址" maxlength="100">
+          <small class="form-hint">用于找回密码和重要通知</small>
+        </div>
+        <div class="form-group">
+          <label for="registerPassword">密码</label>
+          <input type="password" id="registerPassword" name="password" required 
+                 placeholder="请输入密码" minlength="6" maxlength="128">
+          <small class="form-hint">至少6个字符</small>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">确认密码</label>
+          <input type="password" id="confirmPassword" name="confirmPassword" required 
+                 placeholder="请再次输入密码" minlength="6" maxlength="128">
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="primary-btn" id="registerBtn">
+            <span>注册</span>
+            <div class="loading-spinner hidden"></div>
+          </button>
+          <button type="button" class="link-btn" id="showLoginForm">已有账号？立即登录</button>
+        </div>
+      </form>
+
+      <!-- Offline Notice -->
+      <div id="authOfflineNotice" class="offline-notice hidden">
+        <div class="notice-icon">📡</div>
+        <div class="notice-text">
+          <div class="notice-title">无网络连接</div>
+          <div class="notice-desc">登录功能需要网络连接，请检查网络后重试</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- User Info in Header -->
+<div id="userInfo" class="user-info hidden">
+  <div class="user-avatar">
+    <span id="userAvatar">U</span>
+  </div>
+  <div class="user-details">
+    <div class="user-name" id="userName">未登录</div>
+    <div class="sync-status" id="syncStatus">
+      <span class="sync-indicator" id="syncIndicator"></span>
+      <span class="sync-text" id="syncText">离线模式</span>
+    </div>
+  </div>
+  <div class="user-menu">
+    <button id="userMenuBtn" class="user-menu-btn" aria-label="用户菜单">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M12 16L16 12L12 8L8 12L12 16Z" fill="currentColor"/>
+      </svg>
+    </button>
+    <div id="userDropdown" class="user-dropdown hidden">
+      <a href="#" id="syncDataBtn" class="dropdown-item">
+        <span class="item-icon">🔄</span>
+        <span class="item-text">同步数据</span>
+      </a>
+      <a href="#" id="exportCloudDataBtn" class="dropdown-item">
+        <span class="item-icon">📤</span>
+        <span class="item-text">导出云端数据</span>
+      </a>
+      <a href="#" id="importCloudDataBtn" class="dropdown-item">
+        <span class="item-icon">📥</span>
+        <span class="item-text">导入数据到云端</span>
+      </a>
+      <div class="dropdown-divider"></div>
+      <a href="#" id="logoutBtn" class="dropdown-item logout">
+        <span class="item-icon">🚪</span>
+        <span class="item-text">退出登录</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Guest Login Prompt -->
+<div id="guestPrompt" class="guest-prompt">
+  <div class="prompt-content">
+    <div class="prompt-icon">👤</div>
+    <div class="prompt-text">
+      <div class="prompt-title">游客模式</div>
+      <div class="prompt-desc">数据仅保存在本地，登录账号可云端同步</div>
+    </div>
+    <button id="showAuthModal" class="prompt-btn">登录</button>
+  </div>
+</div>

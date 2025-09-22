@@ -1,0 +1,32 @@
+{
+  "name": "lubulu-api",
+  "version": "1.0.0",
+  "description": "Lubulu API backend using Cloudflare Workers",
+  "main": "worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --env production",
+    "deploy:dev": "wrangler deploy --env development",
+    "d1:create": "wrangler d1 create lubulu-prod",
+    "d1:create:dev": "wrangler d1 create lubulu-dev",
+    "d1:migrations:create": "wrangler d1 migrations create lubulu-prod",
+    "d1:migrations:apply": "wrangler d1 migrations apply lubulu-prod",
+    "d1:migrations:apply:dev": "wrangler d1 migrations apply lubulu-dev --local"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "d1",
+    "api",
+    "jwt",
+    "authentication"
+  ],
+  "author": "Lubulu Team",
+  "license": "MIT",
+  "dependencies": {
+    "@tsndr/cloudflare-worker-jwt": "^2.4.3",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "wrangler": "^3.19.0"
+  }
+}
