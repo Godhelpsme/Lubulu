@@ -1,0 +1,562 @@
+/**
+ * Lubulu 响应式样式
+ * 针对不同设备尺寸的样式适配
+ */
+
+/* 断点定义 */
+/* xs: 0px - 575px (小型手机) */
+/* sm: 576px - 767px (大型手机) */
+/* md: 768px - 991px (平板) */
+/* lg: 992px - 1199px (小型桌面) */
+/* xl: 1200px+ (大型桌面) */
+
+/* 基础响应式设置 */
+@media (max-width: 575px) {
+  /* 小型手机 */
+  html {
+    font-size: 14px;
+  }
+  
+  .app-bar {
+    padding: var(--space-sm) var(--space-md);
+    margin-bottom: var(--space-md);
+  }
+  
+  .app-bar .title {
+    font-size: var(--text-2xl);
+  }
+  
+  main {
+    padding: 0 var(--space-sm);
+  }
+  
+  /* 转盘区域 */
+  .roulette-card {
+    padding: var(--space-lg);
+    margin-bottom: var(--space-lg);
+  }
+  
+  #rouletteCanvas {
+    width: 250px;
+    height: 250px;
+  }
+  
+  .spin-btn {
+    padding: var(--space-sm) var(--space-lg);
+    font-size: var(--text-lg);
+  }
+  
+  /* 统计区域 */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+  }
+  
+  .stat-number {
+    font-size: var(--text-2xl);
+  }
+  
+  /* 日历区域 */
+  .calendar-card {
+    padding: var(--space-md);
+  }
+  
+  .calendar-title {
+    font-size: var(--text-xl);
+  }
+  
+  .calendar-nav-btn {
+    padding: var(--space-xs);
+  }
+  
+  .calendar-days {
+    gap: var(--space-xs);
+  }
+  
+  .calendar-day {
+    font-size: var(--text-xs);
+    min-height: 40px;
+  }
+  
+  .calendar-legend {
+    flex-direction: column;
+    gap: var(--space-sm);
+    align-items: flex-start;
+  }
+  
+  /* 对话框 */
+  .dialog {
+    width: 95%;
+    margin: var(--space-sm);
+    padding: var(--space-lg);
+  }
+  
+  .dialog-header h3 {
+    font-size: var(--text-xl);
+  }
+  
+  .dialog-actions {
+    flex-direction: column;
+  }
+  
+  .dialog-actions button {
+    width: 100%;
+  }
+  
+  /* 结果显示 */
+  .result-display {
+    padding: var(--space-lg);
+    margin-top: var(--space-md);
+  }
+  
+  .result-icon {
+    font-size: 3rem;
+  }
+  
+  .result-text {
+    font-size: var(--text-3xl);
+  }
+  
+  .choice-buttons {
+    flex-direction: column;
+  }
+  
+  .result-actions {
+    flex-direction: column;
+  }
+  
+  /* 设置 */
+  .setting-item {
+    gap: var(--space-md);
+  }
+  
+  .mode-buttons {
+    flex-direction: column;
+  }
+  
+  .data-buttons {
+    flex-direction: column;
+  }
+  
+  /* 通知 */
+  .notification-container {
+    left: var(--space-sm);
+    right: var(--space-sm);
+    top: var(--space-sm);
+    max-width: none;
+  }
+  
+  /* 页脚 */
+  .footer {
+    padding: var(--space-md);
+  }
+  
+  .footer-content {
+    font-size: var(--text-xs);
+  }
+}
+
+@media (min-width: 576px) and (max-width: 767px) {
+  /* 大型手机 */
+  html {
+    font-size: 15px;
+  }
+  
+  .app-bar {
+    padding: var(--space-md);
+  }
+  
+  main {
+    padding: 0 var(--space-md);
+  }
+  
+  /* 转盘区域 */
+  .roulette-card {
+    padding: var(--space-xl);
+  }
+  
+  #rouletteCanvas {
+    width: 280px;
+    height: 280px;
+  }
+  
+  /* 统计区域 */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* 日历区域 */
+  .calendar-days {
+    gap: var(--space-sm);
+  }
+  
+  .calendar-day {
+    min-height: 45px;
+  }
+  
+  /* 对话框 */
+  .dialog {
+    width: 90%;
+  }
+  
+  /* 设置 */
+  .data-buttons {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  /* 平板 */
+  html {
+    font-size: 15px;
+  }
+  
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+    align-items: start;
+  }
+  
+  .roulette-section {
+    grid-column: 1 / -1;
+    margin-bottom: var(--space-xl);
+  }
+  
+  .stats-section {
+    margin-bottom: 0;
+  }
+  
+  .calendar-section {
+    margin-bottom: 0;
+  }
+  
+  /* 转盘区域 */
+  #rouletteCanvas {
+    width: 320px;
+    height: 320px;
+  }
+  
+  /* 统计区域 */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* 日历区域 */
+  .calendar-day {
+    min-height: 50px;
+  }
+  
+  /* 对话框 */
+  .dialog {
+    width: 70%;
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  /* 小型桌面 */
+  main {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-2xl);
+    align-items: start;
+  }
+  
+  .roulette-section {
+    margin-bottom: var(--space-2xl);
+  }
+  
+  .stats-section,
+  .calendar-section {
+    margin-bottom: var(--space-xl);
+  }
+  
+  /* 右侧栏 */
+  .stats-section {
+    order: 2;
+  }
+  
+  .calendar-section {
+    order: 3;
+  }
+  
+  /* 统计区域 */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-md);
+  }
+}
+
+@media (min-width: 1200px) {
+  /* 大型桌面 */
+  html {
+    font-size: 16px;
+  }
+  
+  main {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--space-3xl);
+    align-items: start;
+  }
+  
+  .roulette-section {
+    margin-bottom: var(--space-2xl);
+  }
+  
+  .stats-section,
+  .calendar-section {
+    margin-bottom: var(--space-xl);
+  }
+  
+  /* 转盘区域 */
+  #rouletteCanvas {
+    width: 400px;
+    height: 400px;
+  }
+  
+  /* 统计区域 */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* 日历区域 */
+  .calendar-day {
+    min-height: 50px;
+    font-size: var(--text-base);
+  }
+  
+  /* 对话框 */
+  .dialog {
+    max-width: 700px;
+  }
+  
+  /* 通知 */
+  .notification-container {
+    max-width: 450px;
+  }
+}
+
+/* 横屏适配 */
+@media (orientation: landscape) and (max-height: 600px) {
+  .app-bar {
+    padding: var(--space-sm) var(--space-md);
+  }
+  
+  main {
+    padding-top: 0;
+  }
+  
+  .roulette-card {
+    padding: var(--space-lg);
+  }
+  
+  #rouletteCanvas {
+    width: 200px;
+    height: 200px;
+  }
+  
+  .result-display {
+    padding: var(--space-md);
+  }
+  
+  .result-icon {
+    font-size: 2.5rem;
+    margin-bottom: var(--space-sm);
+  }
+  
+  .result-text {
+    font-size: var(--text-2xl);
+    margin-bottom: var(--space-md);
+  }
+  
+  .dialog {
+    max-height: 80vh;
+  }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 增大触摸目标 */
+  .calendar-day {
+    min-height: 50px;
+  }
+  
+  .calendar-nav-btn,
+  .settings-btn {
+    min-width: 48px;
+    min-height: 48px;
+  }
+  
+  .choice-btn {
+    min-height: 48px;
+    padding: var(--space-md) var(--space-xl);
+  }
+  
+  /* 移除悬停效果 */
+  .spin-btn:hover,
+  .calendar-day:hover,
+  .stat-item:hover {
+    transform: none;
+  }
+  
+  /* 增强点击反馈 */
+  .spin-btn:active {
+    transform: scale(0.98);
+  }
+  
+  .choice-btn:active,
+  .btn-primary:active,
+  .btn-secondary:active {
+    transform: scale(0.95);
+  }
+}
+
+/* 高DPI屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .legend-dot {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .day-status {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* 打印样式 */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  body {
+    background: white !important;
+  }
+  
+  .app-bar,
+  .footer,
+  .settings-btn,
+  .dialog,
+  .overlay,
+  .notification-container {
+    display: none !important;
+  }
+  
+  main {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .roulette-section,
+  .stats-section,
+  .calendar-section {
+    break-inside: avoid;
+    margin-bottom: 2rem !important;
+  }
+  
+  .glass,
+  .neu-flat {
+    background: white !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+}
+
+/* 减少动画设置 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  #rouletteCanvas {
+    transition: none !important;
+  }
+  
+  .result-display,
+  .notification,
+  .dialog {
+    animation: none !important;
+  }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  :root {
+    --primary: #4A148C;
+    --success: #B71C1C;
+    --failure: #1B5E20;
+    --border-light: #000000;
+    --text-secondary: #000000;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  }
+  
+  .glass {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid #000000 !important;
+  }
+  
+  .calendar-day.today {
+    border-width: 3px;
+  }
+  
+  .day-status {
+    border-width: 2px;
+  }
+}
+
+/* 容器查询（现代浏览器支持） */
+@container (max-width: 400px) {
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* 浏览器特定优化 */
+/* Safari 特定优化 */
+@supports (-webkit-backdrop-filter: blur(20px)) {
+  .glass {
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    backdrop-filter: blur(var(--glass-blur));
+  }
+}
+
+/* Firefox 特定优化 */
+@-moz-document url-prefix() {
+  .glass {
+    background: rgba(255, 255, 255, 0.9);
+  }
+}
+
+/* Edge 特定优化 */
+@supports (-ms-ime-align: auto) {
+  .glass {
+    background: rgba(255, 255, 255, 0.8);
+  }
+}
+
+/* 可访问性优化 */
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* 深色主题适配 */
+@media (prefers-color-scheme: dark) {
+  body {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  }
+  
+  /* 这里可以添加更多深色主题样式 */
+}
