@@ -9,18 +9,23 @@
   --primary: #673AB7;
   --primary-light: #7E57C2;
   --primary-dark: #512DA8;
+  --primary-rgb: 103, 58, 183;
   
   /* 背景色 */
   --bg-soft: #EDE7F6;
   --bg-gradient: linear-gradient(135deg, #EDE7F6 0%, #F3E5F5 100%);
   --card-bg: #FFFFFF;
   --overlay-bg: rgba(0, 0, 0, 0.5);
+  --surface: #FFFFFF;
+  --surface-rgb: 255, 255, 255;
   
   /* 功能色 */
   --success: #F44336; /* Lu - 红色 */
   --failure: #4CAF50; /* 不Lu - 绿色 */
   --warning: #FF9800;
   --info: #2196F3;
+  --danger: #F44336;
+  --danger-rgb: 244, 67, 54;
   --highlight: #FFB74D;
   
   /* 文字色 */
@@ -33,6 +38,11 @@
   --border-light: #E0E0E0;
   --border-medium: #BDBDBD;
   --border-dark: #757575;
+  --border: #E0E0E0;
+  
+  /* 交互色 */
+  --hover: rgba(0, 0, 0, 0.04);
+  --pressed: rgba(0, 0, 0, 0.08);
   
   /* 阴影 */
   --shadow-sm: 0 2px 4px rgba(103, 58, 183, 0.1);

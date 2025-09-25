@@ -7,7 +7,8 @@ import { RouletteManager, ROULETTE_CONFIG } from './core/roulette.js';
 import { CalendarManager } from './core/calendar.js';
 import { StatisticsManager } from './core/statistics.js';
 import { StorageManager } from './storage/storage-manager.js';
-import { DialogManager, NotificationManager, ConfirmDialog, AudioManager } from './ui/ui-manager.js';
+import { DialogManager, NotificationManager, ConfirmDialog, AudioManager, UserManager } from './ui/ui-manager.js';
+import { AuthManager, DataMigration } from './auth/auth.js';
 import { 
   getBeijingDateString, 
   debounce, 
@@ -34,6 +35,8 @@ export class LubuluApp {
 
     // 管理器实例
     this.managers = {
+      auth: null,
+      user: null,
       roulette: null,
       calendar: null,
       statistics: null,
@@ -46,6 +49,7 @@ export class LubuluApp {
     // DOM 元素
     this.elements = {};
     this.confirmDialog = null;
+    this.dataMigration = null;
     
     // 防抖函数
     this.debouncedUpdateStats = debounce(() => {
@@ -79,6 +83,10 @@ export class LubuluApp {
    * 初始化管理器
    */
   async initializeManagers() {
+    // 认证管理器 - 最先初始化
+    this.managers.auth = new AuthManager();
+    await this.managers.auth.init();
+    
     // 存储管理器
     this.managers.storage = new StorageManager();
     
@@ -87,8 +95,21 @@ export class LubuluApp {
     this.managers.notification = new NotificationManager();
     this.managers.audio = new AudioManager();
     
+    // 数据迁移工具 - 在UserManager之前初始化
+    this.dataMigration = new DataMigration(this.managers.auth, this.managers.storage);
+    
+    // 用户管理器 - 依赖认证管理器、通知管理器和数据迁移工具
+    this.managers.user = new UserManager(
+      this.managers.auth, 
+      this.managers.notification, 
+      this.dataMigration
+    );
+    
     // 确认对话框
     this.confirmDialog = new ConfirmDialog(this.managers.dialog);
+    
+    // 监听认证状态变化
+    this.managers.auth.addListener(this.handleAuthStateChange.bind(this));
   }
 
   /**
@@ -219,6 +240,11 @@ export class LubuluApp {
     document.addEventListener('click', () => {
       this.managers.audio?.resumeContext();
     }, { once: true });
+    
+    // 数据更新事件监听
+    window.addEventListener('dataUpdated', (e) => {
+      this.handleDataUpdated(e.detail);
+    });
   }
 
   /**
@@ -952,6 +978,134 @@ export class LubuluApp {
   }
 
   /**
+   * 处理认证状态变化
+   * @param {string} event - 事件类型
+   * @param {any} data - 事件数据
+   */
+  handleAuthStateChange(event, data) {
+    switch (event) {
+      case 'login_success':
+        this.onUserLogin(data);
+        break;
+      case 'guest_login':
+        this.onGuestLogin(data);
+        break;
+      case 'logout':
+        this.onUserLogout();
+        break;
+    }
+  }
+
+  /**
+   * 用户登录成功处理
+   * @param {Object} user - 用户信息
+   */
+  async onUserLogin(user) {
+    try {
+      // 更新存储管理器的登录状态
+      this.managers.storage.setLoginStatus(true);
+      this.managers.storage.setGuestMode(false);
+      
+      // 重新加载用户数据
+      await this.loadInitialData();
+      
+      // 检查是否需要数据迁移
+      if (this.dataMigration.hasGuestData()) {
+        // 显示迁移提示
+        setTimeout(() => {
+          this.managers.user.showDataMigrationDialog();
+        }, 1000);
+      }
+      
+      Analytics.trackEvent('user_login_complete', {
+        username: user.username
+      });
+    } catch (error) {
+      console.error('用户登录后处理失败:', error.message);
+      this.managers.notification.error('登录后数据加载失败');
+    }
+  }
+
+  /**
+   * 游客登录处理
+   * @param {Object} guestInfo - 游客信息
+   */
+  async onGuestLogin(guestInfo) {
+    try {
+      // 更新存储管理器的游客状态
+      this.managers.storage.setGuestMode(true);
+      this.managers.storage.setLoginStatus(false);
+      
+      // 重新加载数据
+      await this.loadInitialData();
+      
+      Analytics.trackEvent('guest_login_complete');
+    } catch (error) {
+      console.error('游客登录后处理失败:', error.message);
+      this.managers.notification.error('游客模式初始化失败');
+    }
+  }
+
+  /**
+   * 用户注销处理
+   */
+  async onUserLogout() {
+    try {
+      // 清理存储管理器状态
+      this.managers.storage.setLoginStatus(false);
+      this.managers.storage.setGuestMode(false);
+      
+      // 重置应用状态
+      this.state.hasSpunToday = false;
+      this.state.todaySpinCount = 0;
+      this.state.spinResult = null;
+      this.state.isPityTriggered = false;
+      
+      // 重新加载数据（将使用默认/本地数据）
+      await this.loadInitialData();
+      
+      // 更新UI状态
+      this.updateSpinButton();
+      
+      Analytics.trackEvent('user_logout_complete');
+    } catch (error) {
+      console.error('用户注销后处理失败:', error.message);
+      this.managers.notification.error('注销后清理失败');
+    }
+  }
+
+  /**
+   * 处理数据更新事件
+   * @param {Object} detail - 事件详情
+   */
+  async handleDataUpdated(detail = {}) {
+    try {
+      const { reason } = detail;
+      
+      if (reason === 'migration') {
+        // 数据迁移完成，重新加载所有数据
+        await this.loadInitialData();
+        
+        // 更新统计显示
+        this.debouncedUpdateStats();
+        
+        // 更新UI状态
+        this.updateSpinButton();
+        
+        // 刷新日历显示
+        if (this.managers.calendar) {
+          await this.managers.calendar.updateDisplay();
+        }
+        
+        Analytics.trackEvent('data_refreshed_after_migration');
+      }
+    } catch (error) {
+      console.error('处理数据更新事件失败:', error.message);
+      this.managers.notification.warning('数据刷新时出现问题，请刷新页面');
+    }
+  }
+
+  /**
    * 销毁应用
    */
   destroy() {
@@ -962,9 +1116,15 @@ export class LubuluApp {
       }
     });
     
+    // 清理数据迁移工具
+    if (this.dataMigration) {
+      this.dataMigration = null;
+    }
+    
     // 清理事件监听器
     window.removeEventListener('resize', this.handleResize);
     window.removeEventListener('beforeunload', this.handleBeforeUnload);
+    window.removeEventListener('dataUpdated', this.handleDataUpdated);
     
     // 清理状态
     this.state = null;

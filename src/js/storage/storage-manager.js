@@ -224,6 +224,21 @@ export class StorageManager {
   }
 
   /**
+   * 设置API实例
+   * @param {Object} api - API实例
+   */
+  setApi(api) {
+    this.api = api;
+    if (api) {
+      this.syncManager = new SyncManager(api);
+      this.isLoggedIn = !!api.token;
+    } else {
+      this.syncManager = null;
+      this.isLoggedIn = false;
+    }
+  }
+
+  /**
    * 设置登录状态
    * @param {boolean} isLoggedIn - 是否已登录
    */
@@ -231,6 +246,8 @@ export class StorageManager {
     this.isLoggedIn = isLoggedIn;
     if (!isLoggedIn) {
       this.isGuestMode = false;
+      this.api = null;
+      this.syncManager = null;
     }
   }
 
@@ -240,6 +257,9 @@ export class StorageManager {
    */
   setGuestMode(isGuest) {
     this.isGuestMode = isGuest;
+    if (isGuest) {
+      this.isLoggedIn = false;
+    }
   }
 
   /**
@@ -549,8 +569,141 @@ export class StorageManager {
       localStorage: this.localStorage.isAvailable(),
       isOnline: navigator.onLine,
       isLoggedIn: this.isLoggedIn,
+      isGuestMode: this.isGuestMode,
       syncQueueSize: this.syncManager?.syncQueue.size || 0
     };
+  }
+
+  /**
+   * 获取游客数据的键名前缀
+   * @returns {string} 游客数据前缀
+   */
+  getGuestDataPrefix() {
+    return 'guest_';
+  }
+
+  /**
+   * 备份当前数据到游客数据前缀
+   */
+  backupAsGuestData() {
+    try {
+      const currentData = {
+        settings: this.localStorage.get('settings', {}),
+        spinHistory: this.localStorage.get('spinHistory', {}),
+        dailySpinCounts: this.localStorage.get('dailySpinCounts', {})
+      };
+      
+      const prefix = this.getGuestDataPrefix();
+      Object.entries(currentData).forEach(([key, value]) => {
+        this.localStorage.set(prefix + key, value);
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('备份游客数据失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 恢复游客数据
+   */
+  restoreGuestData() {
+    try {
+      const prefix = this.getGuestDataPrefix();
+      const guestData = {
+        settings: this.localStorage.get(prefix + 'settings', {}),
+        spinHistory: this.localStorage.get(prefix + 'spinHistory', {}),
+        dailySpinCounts: this.localStorage.get(prefix + 'dailySpinCounts', {})
+      };
+      
+      // 如果有游客数据，则恢复
+      if (Object.keys(guestData.settings).length > 0 || 
+          Object.keys(guestData.spinHistory).length > 0) {
+        Object.entries(guestData).forEach(([key, value]) => {
+          if (Object.keys(value).length > 0) {
+            this.localStorage.set(key, value);
+          }
+        });
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('恢复游客数据失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 清除游客数据备份
+   */
+  clearGuestDataBackup() {
+    try {
+      const prefix = this.getGuestDataPrefix();
+      const keys = ['settings', 'spinHistory', 'dailySpinCounts'];
+      keys.forEach(key => {
+        this.localStorage.remove(prefix + key);
+      });
+      return true;
+    } catch (error) {
+      console.error('清除游客数据备份失败:', error);
+      return false;
+    }
+  }
+
+  /**
+   * 获取用户数据统计信息
+   * @returns {Object} 数据统计信息
+   */
+  getDataStatistics() {
+    try {
+      const settings = this.localStorage.get('settings', {});
+      const history = this.localStorage.get('spinHistory', {});
+      const dailySpinCounts = this.localStorage.get('dailySpinCounts', {});
+      
+      return {
+        hasSettings: Object.keys(settings).length > 0,
+        historyCount: Object.keys(history).length,
+        dailyCountsCount: Object.keys(dailySpinCounts).length,
+        totalRecords: Object.keys(history).length + Object.keys(dailySpinCounts).length,
+        storageSize: this.estimateStorageSize()
+      };
+    } catch (error) {
+      console.error('获取数据统计失败:', error);
+      return {
+        hasSettings: false,
+        historyCount: 0,
+        dailyCountsCount: 0,
+        totalRecords: 0,
+        storageSize: 0
+      };
+    }
+  }
+
+  /**
+   * 估算存储使用大小（字节）
+   * @returns {number} 存储大小
+   */
+  estimateStorageSize() {
+    try {
+      let totalSize = 0;
+      const keys = Object.keys(localStorage).filter(key => 
+        key.startsWith(this.localStorage.prefix)
+      );
+      
+      keys.forEach(key => {
+        const value = localStorage.getItem(key);
+        if (value) {
+          totalSize += key.length + value.length;
+        }
+      });
+      
+      return totalSize;
+    } catch (error) {
+      console.error('估算存储大小失败:', error);
+      return 0;
+    }
   }
 
   /**
