@@ -18,10 +18,10 @@ jobs:
     name: Deploy to Cloudflare Pages
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v4.1.0
         with:
           node-version: '18'
           cache: 'npm'
@@ -32,7 +32,7 @@ jobs:
       - name: Build project
         run: npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL || 'https://api.lubulu.app' }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL != '' && secrets.VITE_API_URL || 'https://api.lubulu.app' }}
 
       - name: Publish to Cloudflare Pages
         uses: cloudflare/pages-action@v1
