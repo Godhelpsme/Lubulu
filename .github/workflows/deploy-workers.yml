@@ -1,0 +1,40 @@
+name: Deploy Cloudflare Workers API
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'workers/api/**'
+      - '.github/workflows/deploy-workers.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Workers API
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: workers/api/package-lock.json
+
+      - name: Install dependencies
+        working-directory: workers/api
+        run: npm ci
+
+      - name: Deploy to Cloudflare Workers
+        working-directory: workers/api
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Deployment notification
+        if: success()
+        run: |
+          echo "✅ Workers API deployed successfully!"
+          echo "🚀 API is now live at your Workers URL"

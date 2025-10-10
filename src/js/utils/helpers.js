@@ -74,9 +74,20 @@ export function getBeijingDate() {
  */
 export function sanitizeInput(input) {
   if (typeof input !== 'string') return '';
+
+  // 使用DOM API的textContent进行安全转义
   const div = document.createElement('div');
   div.textContent = input;
-  return div.innerHTML;
+  let sanitized = div.innerHTML;
+
+  // 额外的清理：移除任何可能的事件处理器属性
+  sanitized = sanitized.replace(/on\w+\s*=\s*['""][^'"]*['"]/gi, '');
+
+  // 清理javascript: 和 data: 协议
+  sanitized = sanitized.replace(/javascript:/gi, '');
+  sanitized = sanitized.replace(/data:/gi, '');
+
+  return sanitized;
 }
 
 /**

@@ -5,24 +5,25 @@
 
 import { Router } from 'itty-router';
 import { validateToken, generateToken, hashPassword, verifyPassword } from './auth-utils';
-import { corsHeaders, handleCors } from './cors';
+import { getCorsHeaders, handleCors, addCorsHeaders } from './cors';
 
 const router = Router();
 
 /**
  * 健康检查端点
  */
-router.get('/api/health', () => {
-  return new Response(JSON.stringify({
+router.get('/api/health', (request) => {
+  const response = new Response(JSON.stringify({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    version: '2.0.0'
+    version: '2.1.0'
   }), {
     headers: {
       'Content-Type': 'application/json',
-      ...corsHeaders
+      ...getCorsHeaders(request)
     }
   });
+  return response;
 });
 
 /**
@@ -33,14 +34,14 @@ router.post('/api/auth/register', async (request, env) => {
     const { username, password, email } = await request.json();
 
     // 输入验证
-    if (!username || username.length < 3) {
-      return jsonResponse({ error: '用户名至少需要3个字符' }, 400);
+    if (!username || username.length < 3 || username.length > 20) {
+      return jsonResponse(request, { error: '用户名需要3-20个字符' }, 400);
     }
-    if (!password || password.length < 6) {
-      return jsonResponse({ error: '密码至少需要6个字符' }, 400);
+    if (!password || password.length < 8) {
+      return jsonResponse(request, { error: '密码至少需要8个字符' }, 400);
     }
     if (!email || !isValidEmail(email)) {
-      return jsonResponse({ error: '请输入有效的邮箱地址' }, 400);
+      return jsonResponse(request, { error: '请输入有效的邮箱地址' }, 400);
     }
 
     // 检查用户是否已存在
@@ -49,7 +50,7 @@ router.post('/api/auth/register', async (request, env) => {
     ).bind(username, email).first();
 
     if (existingUser) {
-      return jsonResponse({ error: '用户名或邮箱已被使用' }, 409);
+      return jsonResponse(request, { error: '用户名或邮箱已被使用' }, 409);
     }
 
     // 创建用户
@@ -63,14 +64,14 @@ router.post('/api/auth/register', async (request, env) => {
     // 生成令牌
     const token = await generateToken(userId, username, env.JWT_SECRET);
 
-    return jsonResponse({
+    return jsonResponse(request, {
       user: { id: userId, username, email },
       token
     }, 201);
 
   } catch (error) {
     console.error('Register error:', error);
-    return jsonResponse({ error: '注册失败，请稍后重试' }, 500);
+    return jsonResponse(request, { error: '注册失败，请稍后重试' }, 500);
   }
 });
 
@@ -82,7 +83,7 @@ router.post('/api/auth/login', async (request, env) => {
     const { username, password } = await request.json();
 
     if (!username || !password) {
-      return jsonResponse({ error: '请输入用户名和密码' }, 400);
+      return jsonResponse(request, { error: '请输入用户名和密码' }, 400);
     }
 
     // 查找用户
@@ -91,13 +92,13 @@ router.post('/api/auth/login', async (request, env) => {
     ).bind(username).first();
 
     if (!user) {
-      return jsonResponse({ error: '用户名或密码错误' }, 401);
+      return jsonResponse(request, { error: '用户名或密码错误' }, 401);
     }
 
     // 验证密码
     const isValid = await verifyPassword(password, user.password_hash);
     if (!isValid) {
-      return jsonResponse({ error: '用户名或密码错误' }, 401);
+      return jsonResponse(request, { error: '用户名或密码错误' }, 401);
     }
 
     // 更新最后登录时间
@@ -108,7 +109,7 @@ router.post('/api/auth/login', async (request, env) => {
     // 生成令牌
     const token = await generateToken(user.id, user.username, env.JWT_SECRET);
 
-    return jsonResponse({
+    return jsonResponse(request, {
       user: {
         id: user.id,
         username: user.username,
@@ -119,7 +120,7 @@ router.post('/api/auth/login', async (request, env) => {
 
   } catch (error) {
     console.error('Login error:', error);
-    return jsonResponse({ error: '登录失败，请稍后重试' }, 500);
+    return jsonResponse(request, { error: '登录失败，请稍后重试' }, 500);
   }
 });
 
@@ -130,7 +131,7 @@ router.post('/api/auth/validate', async (request, env) => {
   try {
     const authResult = await authenticateRequest(request, env);
     if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, 401);
+      return jsonResponse(request, { error: authResult.error }, 401);
     }
 
     const user = await env.DB.prepare(
@@ -138,24 +139,23 @@ router.post('/api/auth/validate', async (request, env) => {
     ).bind(authResult.userId).first();
 
     if (!user) {
-      return jsonResponse({ error: '用户不存在' }, 404);
+      return jsonResponse(request, { error: '用户不存在' }, 404);
     }
 
-    return jsonResponse({ user });
+    return jsonResponse(request, { user });
 
   } catch (error) {
     console.error('Validate error:', error);
-    return jsonResponse({ error: '验证失败' }, 500);
+    return jsonResponse(request, { error: '验证失败' }, 500);
   }
 });
 
 /**
  * 用户注销
  */
-router.post('/api/auth/logout', async (request, env) => {
+router.post('/api/auth/logout', async (request) => {
   // Workers 使用无状态JWT，注销主要在客户端完成
-  // 这里可以记录注销日志或加入黑名单机制
-  return jsonResponse({ message: '注销成功' });
+  return jsonResponse(request, { message: '注销成功' });
 });
 
 /**
@@ -165,7 +165,7 @@ router.get('/api/settings', async (request, env) => {
   try {
     const authResult = await authenticateRequest(request, env);
     if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, 401);
+      return jsonResponse(request, { error: authResult.error }, 401);
     }
 
     const settings = await env.DB.prepare(
@@ -174,7 +174,7 @@ router.get('/api/settings', async (request, env) => {
 
     if (!settings) {
       // 返回默认设置
-      return jsonResponse({
+      return jsonResponse(request, {
         pityDays: 0,
         luProbability: 1,
         multiMode: false,
@@ -183,11 +183,11 @@ router.get('/api/settings', async (request, env) => {
       });
     }
 
-    return jsonResponse(JSON.parse(settings.settings));
+    return jsonResponse(request, JSON.parse(settings.settings));
 
   } catch (error) {
     console.error('Get settings error:', error);
-    return jsonResponse({ error: '获取设置失败' }, 500);
+    return jsonResponse(request, { error: '获取设置失败' }, 500);
   }
 });
 
@@ -198,14 +198,14 @@ router.post('/api/settings', async (request, env) => {
   try {
     const authResult = await authenticateRequest(request, env);
     if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, 401);
+      return jsonResponse(request, { error: authResult.error }, 401);
     }
 
     const settings = await request.json();
 
     // 验证设置
     if (!validateSettings(settings)) {
-      return jsonResponse({ error: '无效的设置参数' }, 400);
+      return jsonResponse(request, { error: '无效的设置参数' }, 400);
     }
 
     // 保存或更新设置
@@ -221,11 +221,11 @@ router.post('/api/settings', async (request, env) => {
       new Date().toISOString()
     ).run();
 
-    return jsonResponse(settings);
+    return jsonResponse(request, settings);
 
   } catch (error) {
     console.error('Save settings error:', error);
-    return jsonResponse({ error: '保存设置失败' }, 500);
+    return jsonResponse(request, { error: '保存设置失败' }, 500);
   }
 });
 
@@ -236,7 +236,7 @@ router.get('/api/history', async (request, env) => {
   try {
     const authResult = await authenticateRequest(request, env);
     if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, 401);
+      return jsonResponse(request, { error: authResult.error }, 401);
     }
 
     const records = await env.DB.prepare(
@@ -253,11 +253,11 @@ router.get('/api/history', async (request, env) => {
       };
     });
 
-    return jsonResponse(history);
+    return jsonResponse(request, history);
 
   } catch (error) {
     console.error('Get history error:', error);
-    return jsonResponse({ error: '获取历史记录失败' }, 500);
+    return jsonResponse(request, { error: '获取历史记录失败' }, 500);
   }
 });
 
@@ -268,13 +268,13 @@ router.post('/api/history', async (request, env) => {
   try {
     const authResult = await authenticateRequest(request, env);
     if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, 401);
+      return jsonResponse(request, { error: authResult.error }, 401);
     }
 
     const { date, result, isPityTriggered } = await request.json();
 
     if (!date || !result) {
-      return jsonResponse({ error: '缺少必需参数' }, 400);
+      return jsonResponse(request, { error: '缺少必需参数' }, 400);
     }
 
     await env.DB.prepare(
@@ -295,11 +295,11 @@ router.post('/api/history', async (request, env) => {
       new Date().toISOString()
     ).run();
 
-    return jsonResponse({ success: true });
+    return jsonResponse(request, { success: true });
 
   } catch (error) {
     console.error('Save history error:', error);
-    return jsonResponse({ error: '保存历史记录失败' }, 500);
+    return jsonResponse(request, { error: '保存历史记录失败' }, 500);
   }
 });
 
@@ -310,7 +310,7 @@ router.delete('/api/history/:date', async (request, env) => {
   try {
     const authResult = await authenticateRequest(request, env);
     if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, 401);
+      return jsonResponse(request, { error: authResult.error }, 401);
     }
 
     const { date } = request.params;
@@ -319,11 +319,11 @@ router.delete('/api/history/:date', async (request, env) => {
       'DELETE FROM spin_history WHERE user_id = ? AND date = ?'
     ).bind(authResult.userId, date).run();
 
-    return jsonResponse({ success: true });
+    return jsonResponse(request, { success: true });
 
   } catch (error) {
     console.error('Delete history error:', error);
-    return jsonResponse({ error: '删除历史记录失败' }, 500);
+    return jsonResponse(request, { error: '删除历史记录失败' }, 500);
   }
 });
 
@@ -334,7 +334,7 @@ router.post('/api/daily-count', async (request, env) => {
   try {
     const authResult = await authenticateRequest(request, env);
     if (!authResult.valid) {
-      return jsonResponse({ error: authResult.error }, 401);
+      return jsonResponse(request, { error: authResult.error }, 401);
     }
 
     const { date, count } = await request.json();
@@ -344,16 +344,16 @@ router.post('/api/daily-count', async (request, env) => {
        WHERE user_id = ? AND date = ?`
     ).bind(count, authResult.userId, date).run();
 
-    return jsonResponse({ success: true });
+    return jsonResponse(request, { success: true });
 
   } catch (error) {
     console.error('Save daily count error:', error);
-    return jsonResponse({ error: '保存次数失败' }, 500);
+    return jsonResponse(request, { error: '保存次数失败' }, 500);
   }
 });
 
 // 404 处理
-router.all('*', () => jsonResponse({ error: 'Not Found' }, 404));
+router.all('*', (request) => jsonResponse(request, { error: 'Not Found' }, 404));
 
 /**
  * 主处理函数
@@ -362,14 +362,14 @@ export default {
   async fetch(request, env, ctx) {
     // 处理 CORS 预检请求
     if (request.method === 'OPTIONS') {
-      return handleCors();
+      return handleCors(request);
     }
 
     try {
       return await router.handle(request, env, ctx);
     } catch (error) {
       console.error('Unhandled error:', error);
-      return jsonResponse({ error: '服务器内部错误' }, 500);
+      return jsonResponse(request, { error: '服务器内部错误' }, 500);
     }
   }
 };
@@ -396,12 +396,12 @@ async function authenticateRequest(request, env) {
 }
 
 // JSON响应
-function jsonResponse(data, status = 200) {
+function jsonResponse(request, data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
       'Content-Type': 'application/json',
-      ...corsHeaders
+      ...getCorsHeaders(request)
     }
   });
 }

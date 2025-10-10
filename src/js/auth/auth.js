@@ -1,9 +1,11 @@
 /**
- * Lubulu 用户认证模块
+ * Lubulu 用户认证模块 (增强版)
  * 提供用户注册、登录、注销等功能
+ * 集成API健康检查和降级机制
  */
 
 import { ErrorHandler, Analytics, sanitizeInput } from '../utils/helpers.js';
+import { apiClient } from '../api/api-client.js';
 
 /**
  * 用户认证管理器
@@ -13,9 +15,10 @@ export class AuthManager {
     this.user = null;
     this.isLoggedIn = false;
     this.isGuestMode = false;
-    this.apiBaseUrl = 'https://api.lubulu.app';
+    this.apiClient = apiClient;
     this.listeners = new Set();
-    
+    this.isApiAvailable = false;
+
     // 检查本地存储的登录状态
     this.checkStoredAuth();
   }
@@ -25,18 +28,33 @@ export class AuthManager {
    */
   async init() {
     try {
-      // 验证存储的认证信息
-      if (this.isLoggedIn) {
-        await this.validateStoredAuth();
+      // 检查API健康状态
+      this.isApiAvailable = await this.apiClient.checkHealth();
+
+      if (!this.isApiAvailable) {
+        console.warn('API暂时不可用，将使用本地模式');
+        Analytics.trackEvent('api_unavailable_at_init');
       }
-      
+
+      // 验证存储的认证信息
+      if (this.isLoggedIn && this.isApiAvailable) {
+        try {
+          await this.validateStoredAuth();
+        } catch (error) {
+          console.warn('令牌验证失败，将保持离线模式');
+          // 不自动登出，允许用户继续使用本地数据
+        }
+      }
+
       Analytics.trackEvent('auth_manager_initialized', {
         isLoggedIn: this.isLoggedIn,
-        isGuestMode: this.isGuestMode
+        isGuestMode: this.isGuestMode,
+        isApiAvailable: this.isApiAvailable
       });
     } catch (error) {
       console.warn('认证初始化失败:', error.message);
-      await this.logout();
+      // 不自动登出，让用户继续使用本地模式
+      this.isApiAvailable = false;
     }
   }
 
@@ -57,6 +75,7 @@ export class AuthManager {
         this.user = JSON.parse(userStr);
         this.isLoggedIn = true;
         this.isGuestMode = false;
+        this.apiClient.setToken(token);
       }
     } catch (error) {
       console.warn('读取本地认证信息失败:', error.message);
@@ -77,23 +96,15 @@ export class AuthManager {
       const token = localStorage.getItem('lubulu_token');
       if (!token) throw new Error('没有有效的认证令牌');
 
-      const response = await fetch(`${this.apiBaseUrl}/auth/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('认证令牌已失效');
-      }
-
-      const userData = await response.json();
+      this.apiClient.setToken(token);
+      const userData = await this.apiClient.validateToken();
       this.user = userData.user;
+      this.isApiAvailable = true;
       return true;
     } catch (error) {
       console.warn('认证验证失败:', error.message);
+      this.apiClient.clearToken();
+      this.isApiAvailable = false;
       throw error;
     }
   }
@@ -105,8 +116,17 @@ export class AuthManager {
    */
   async register(userData) {
     try {
+      // 检查API是否可用
+      if (!this.isApiAvailable) {
+        this.isApiAvailable = await this.apiClient.checkHealth();
+      }
+
+      if (!this.isApiAvailable) {
+        throw new Error('注册功能需要网络连接，请稍后重试');
+      }
+
       const { username, password, email } = userData;
-      
+
       // 输入验证
       if (!username || username.length < 3) {
         throw new Error('用户名至少需要3个字符');
@@ -121,23 +141,11 @@ export class AuthManager {
       // 清理输入
       const cleanUserData = {
         username: sanitizeInput(username).trim(),
-        password: password, // 密码不清理，保持原样传递给后端
+        password: password,
         email: sanitizeInput(email).trim().toLowerCase()
       };
 
-      const response = await fetch(`${this.apiBaseUrl}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(cleanUserData)
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || '注册失败');
-      }
+      const result = await this.apiClient.register(cleanUserData);
 
       // 注册成功后自动登录
       await this.handleAuthSuccess(result);
@@ -162,8 +170,17 @@ export class AuthManager {
    */
   async login(loginData) {
     try {
+      // 检查API是否可用
+      if (!this.isApiAvailable) {
+        this.isApiAvailable = await this.apiClient.checkHealth();
+      }
+
+      if (!this.isApiAvailable) {
+        throw new Error('登录功能需要网络连接，请稍后重试或使用游客模式');
+      }
+
       const { username, password } = loginData;
-      
+
       if (!username || !password) {
         throw new Error('请输入用户名和密码');
       }
@@ -173,19 +190,7 @@ export class AuthManager {
         password: password
       };
 
-      const response = await fetch(`${this.apiBaseUrl}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(cleanLoginData)
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || '登录失败');
-      }
+      const result = await this.apiClient.login(cleanLoginData);
 
       await this.handleAuthSuccess(result);
 
@@ -232,18 +237,10 @@ export class AuthManager {
   async logout() {
     try {
       const wasLoggedIn = this.isLoggedIn;
-      
-      if (wasLoggedIn && navigator.onLine) {
+
+      if (wasLoggedIn && navigator.onLine && this.isApiAvailable) {
         try {
-          const token = localStorage.getItem('lubulu_token');
-          if (token) {
-            await fetch(`${this.apiBaseUrl}/auth/logout`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            });
-          }
+          await this.apiClient.logout();
         } catch (error) {
           console.warn('服务器注销失败:', error.message);
         }
@@ -251,6 +248,7 @@ export class AuthManager {
 
       // 清理本地状态
       this.clearStoredAuth();
+      this.apiClient.clearToken();
       this.user = null;
       this.isLoggedIn = false;
       this.isGuestMode = false;
@@ -270,15 +268,19 @@ export class AuthManager {
    */
   async handleAuthSuccess(result) {
     const { user, token } = result;
-    
+
     this.user = user;
     this.isLoggedIn = true;
     this.isGuestMode = false;
+    this.isApiAvailable = true;
 
     // 存储认证信息
     localStorage.setItem('lubulu_user', JSON.stringify(user));
     localStorage.setItem('lubulu_token', token);
     localStorage.removeItem('lubulu_guest_mode');
+
+    // 设置API客户端令牌
+    this.apiClient.setToken(token);
 
     this.notifyListeners('login_success', user);
   }
@@ -324,6 +326,14 @@ export class AuthManager {
    */
   getGuestMode() {
     return this.isGuestMode;
+  }
+
+  /**
+   * 获取API可用性状态
+   * @returns {boolean} API是否可用
+   */
+  getApiStatus() {
+    return this.isApiAvailable;
   }
 
   /**
@@ -380,24 +390,18 @@ export class AuthManager {
       throw new Error('新密码至少需要6个字符');
     }
 
+    if (!this.isApiAvailable) {
+      throw new Error('修改密码需要网络连接');
+    }
+
     try {
-      const token = this.getToken();
-      const response = await fetch(`${this.apiBaseUrl}/auth/change-password`, {
+      await this.apiClient.request('/api/auth/change-password', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           oldPassword,
           newPassword
         })
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || '密码修改失败');
-      }
 
       Analytics.trackEvent('password_changed');
     } catch (error) {
@@ -419,21 +423,15 @@ export class AuthManager {
       throw new Error('请输入密码确认');
     }
 
+    if (!this.isApiAvailable) {
+      throw new Error('删除账户需要网络连接');
+    }
+
     try {
-      const token = this.getToken();
-      const response = await fetch(`${this.apiBaseUrl}/auth/delete-account`, {
+      await this.apiClient.request('/api/auth/delete-account', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ password })
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || '账户删除失败');
-      }
 
       // 删除成功后注销
       await this.logout();
@@ -456,7 +454,7 @@ export class AuthManager {
 }
 
 /**
- * 数据迁移工具
+ * 数据迁移工具 (增强版)
  */
 export class DataMigration {
   constructor(authManager, storageManager) {
@@ -466,9 +464,10 @@ export class DataMigration {
 
   /**
    * 将游客数据迁移到用户账户
+   * @param {string} strategy - 合并策略: 'keep-both', 'user-priority', 'guest-priority'
    * @returns {Promise<boolean>} 是否成功迁移
    */
-  async migrateGuestDataToUser() {
+  async migrateGuestDataToUser(strategy = 'keep-both') {
     try {
       if (!this.authManager.isLoggedIn || this.authManager.isGuestMode) {
         throw new Error('请先登录用户账户');
@@ -482,21 +481,22 @@ export class DataMigration {
 
       // 获取游客数据
       const guestData = await this.getGuestData();
-      
+
       // 备份当前用户数据
       const currentUserData = await this.storageManager.exportData();
-      
-      // 合并数据
-      const mergedData = this.mergeData(guestData, currentUserData);
-      
+
+      // 智能合并数据
+      const mergedData = this.mergeData(guestData, currentUserData, strategy);
+
       // 导入合并后的数据
       await this.storageManager.importData(mergedData);
-      
+
       // 清理游客数据
       this.clearGuestData();
 
       Analytics.trackEvent('guest_data_migrated', {
-        historyCount: Object.keys(mergedData.history || {}).length
+        historyCount: Object.keys(mergedData.history || {}).length,
+        strategy
       });
 
       return true;
@@ -514,7 +514,7 @@ export class DataMigration {
     const settings = localStorage.getItem('settings');
     const history = localStorage.getItem('spinHistory');
     const dailySpinCounts = localStorage.getItem('dailySpinCounts');
-    
+
     return !!(settings || history || dailySpinCounts);
   }
 
@@ -531,17 +531,81 @@ export class DataMigration {
   }
 
   /**
-   * 合并游客数据和用户数据
+   * 智能合并游客数据和用户数据
    * @param {Object} guestData - 游客数据
    * @param {Object} userData - 用户数据
+   * @param {string} strategy - 合并策略
    * @returns {Object} 合并后的数据
    */
-  mergeData(guestData, userData) {
-    return {
-      settings: { ...guestData.settings, ...userData.settings },
-      history: { ...guestData.history, ...userData.history },
-      dailySpinCounts: { ...guestData.dailySpinCounts, ...userData.dailySpinCounts }
+  mergeData(guestData, userData, strategy = 'keep-both') {
+    const merged = {
+      settings: {},
+      history: {},
+      dailySpinCounts: {}
     };
+
+    // 设置合并: 用户设置优先
+    merged.settings = { ...guestData.settings, ...userData.settings };
+
+    // 历史记录智能合并
+    const allDates = new Set([
+      ...Object.keys(guestData.history || {}),
+      ...Object.keys(userData.history || {})
+    ]);
+
+    allDates.forEach(date => {
+      const guestRecord = guestData.history?.[date];
+      const userRecord = userData.history?.[date];
+
+      if (guestRecord && userRecord) {
+        // 冲突解决
+        merged.history[date] = this.resolveConflict(
+          guestRecord,
+          userRecord,
+          strategy
+        );
+      } else {
+        merged.history[date] = guestRecord || userRecord;
+      }
+    });
+
+    // 抽取次数合并
+    const allCountDates = new Set([
+      ...Object.keys(guestData.dailySpinCounts || {}),
+      ...Object.keys(userData.dailySpinCounts || {})
+    ]);
+
+    allCountDates.forEach(date => {
+      const guestCount = guestData.dailySpinCounts?.[date] || 0;
+      const userCount = userData.dailySpinCounts?.[date] || 0;
+      merged.dailySpinCounts[date] = Math.max(guestCount, userCount);
+    });
+
+    return merged;
+  }
+
+  /**
+   * 解决数据冲突
+   * @param {Object} record1 - 记录1
+   * @param {Object} record2 - 记录2
+   * @param {string} strategy - 策略
+   * @returns {Object} 解决后的记录
+   */
+  resolveConflict(record1, record2, strategy) {
+    switch (strategy) {
+      case 'user-priority':
+        return record2;
+
+      case 'guest-priority':
+        return record1;
+
+      case 'keep-both':
+      default:
+        // 选择时间戳更新的记录
+        const timestamp1 = new Date(record1.timestamp || 0).getTime();
+        const timestamp2 = new Date(record2.timestamp || 0).getTime();
+        return timestamp1 > timestamp2 ? record1 : record2;
+    }
   }
 
   /**

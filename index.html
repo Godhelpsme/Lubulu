@@ -33,8 +33,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="https://api.lubulu.app" />
   
-  <!-- 字体预加载 -->
-  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Roboto:wght@400;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+  <!-- 字体优化加载 -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Roboto:wght@400;700&display=swap" /></noscript>
   
   <!-- CSS模块化加载 -->
@@ -52,22 +52,12 @@
   <link rel="modulepreload" href="/src/js/core/calendar.js" />
   <link rel="modulepreload" href="/src/js/core/statistics.js" />
   
-  <!-- CSP安全策略 -->
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    font-src 'self' https://fonts.gstatic.com;
-    img-src 'self' data: blob:;
-    connect-src 'self' https://api.lubulu.app;
-    worker-src 'self';
-    manifest-src 'self';
-  " />
+  <!-- CSP安全策略通过_headers文件配置以避免冲突 -->
   
   <title>Lubulu - 健康决策轮盘</title>
   
-  <!-- 第三方库 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" async></script>
+  <!-- 第三方库 - 按需加载 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" async defer></script>
 </head>
 <body>
   <!-- 加载指示器 -->
@@ -165,7 +155,7 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-content">
-      <span>Copyright © 2025 ius | Licensed under MIT License | <a href="#" id="studioLink" target="_blank">Lubulu</a></span>
+      <span>© 2025 Lubulu | <a href="https://github.com/Godhelpsme/Lubulu" target="_blank" rel="noopener noreferrer">GitHub</a> | MIT License</span>
     </div>
   </footer>
 
