@@ -18,10 +18,10 @@ jobs:
     name: Deploy to Cloudflare Pages
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.2.0
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4.1.0
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
           cache: 'npm'
