@@ -3,7 +3,7 @@
  * 统一管理所有对话框和弹窗
  */
 
-import { debounce, Analytics, sanitizeInput } from '../utils/helpers.js';
+import { debounce } from '../utils/helpers.js';
 
 /**
  * 对话框管理类
@@ -97,9 +97,6 @@ export class DialogManager {
     }
 
     // 分析记录
-    Analytics.trackEvent('dialog_opened', {
-      dialogId: dialogElement.id || 'unknown'
-    });
   }
 
   /**
@@ -132,9 +129,6 @@ export class DialogManager {
       }
     }, 200);
 
-    Analytics.trackEvent('dialog_closed', {
-      dialogId: dialogElement.id || 'unknown'
-    });
   }
 
   /**
@@ -237,82 +231,6 @@ export class NotificationManager {
       }, duration);
     }
 
-    Analytics.trackEvent('notification_shown', { type, message: message.substring(0, 50) });
-
-    return id;
-  }
-
-  /**
-   * 创建通知元素
-   */
-  createNotificationElement(id, message, options) {
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${options.type}`;
-    notification.dataset.id = id;
-
-    const safeMessage = sanitizeInput(message);
-    
-    notification.innerHTML = `
-      <div class="notification-icon">${options.icon}</div>
-      <div class="notification-content">
-        <div class="notification-message">${safeMessage}</div>
-        ${options.action ? `<div class="notification-actions">${options.action}</div>` : ''}
-      </div>
-      ${options.closable ? '<button class="notification-close" aria-label="关闭">×</button>' : ''}
-    `;
-
-    // 绑定关闭事件
-    if (options.closable) {
-      const closeBtn = notification.querySelector('.notification-close');
-      closeBtn.addEventListener('click', () => this.hide(id));
-    }
-
-    return notification;
-  }
-
-  /**
-   * 获取默认图标
-   */
-  getDefaultIcon(type) {
-    const icons = {
-      success: '✅',
-      error: '❌',
-      warning: '⚠️',
-      info: 'ℹ️',
-      loading: '⏳'
-    };
-    return icons[type] || '📢';
-  }
-
-  /**
-   * 隐藏通知
-   * @param {string} id - 通知ID
-   */
-  hide(id) {
-    const notification = this.notifications.get(id);
-    if (!notification) return;
-
-    notification.classList.remove('show');
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-      this.notifications.delete(id);
-    }, 300);
-  }
-
-  /**
-   * 清除所有通知
-   */
-  clearAll() {
-    this.notifications.forEach((_, id) => this.hide(id));
-  }
-
-  /**
-   * 显示成功通知
-   */
-  success(message, options = {}) {
-    return this.show(message, { ...options, type: 'success' });
   }
 
   /**
@@ -410,13 +328,6 @@ export class ConfirmDialog {
       const handleConfirm = () => {
         cleanup();
         resolve(true);
-        Analytics.trackEvent('confirm_dialog_accepted', { title });
-      };
-
-      const handleCancel = () => {
-        cleanup();
-        resolve(false);
-        Analytics.trackEvent('confirm_dialog_cancelled', { title });
       };
 
       const cleanup = () => {
