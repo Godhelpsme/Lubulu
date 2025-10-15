@@ -8,6 +8,24 @@
  * 4. 消除所有特殊情况判断
  */
 
+// UI配置 - 数据驱动,消除if/else
+const RESULT_UI_CONFIG = {
+  Lu: {
+    icon: '🎉',
+    text: 'Lu!',
+    color: '#F44336',
+    showChoice: true,
+    showActions: false
+  },
+  '不Lu': {
+    icon: '💪',
+    text: '不Lu',
+    color: '#4CAF50',
+    showChoice: false,
+    showActions: true
+  }
+};
+
 import { RouletteController } from './core/roulette-controller.js';
 import { AppState } from './core/app-state.js';
 import { CalendarManager } from './core/calendar.js';
@@ -304,39 +322,40 @@ export class LubuluApp {
   }
 
   /**
-   * 显示转盘结果
+   * 显示转盘结果 - 数据驱动,消除if/else
    */
   showSpinResult(result) {
     const resultDisplay = this.elements.resultDisplay;
     if (!resultDisplay) return;
 
+    // 获取UI配置
+    const uiConfig = RESULT_UI_CONFIG[result.result];
+    if (!uiConfig) {
+      console.error('Unknown result type:', result.result);
+      return;
+    }
+
     // 显示结果界面
     resultDisplay.classList.remove('hidden');
 
-    // 设置结果内容
+    // 设置结果内容(数据驱动)
     const resultIcon = resultDisplay.querySelector('.result-icon');
     const resultText = resultDisplay.querySelector('.result-text');
-
-    if (result.isLu) {
-      resultIcon.textContent = '🎉';
-      resultText.textContent = 'Lu!';
-      resultText.style.color = '#F44336';
-    } else {
-      resultIcon.textContent = '💪';
-      resultText.textContent = '不Lu';
-      resultText.style.color = '#4CAF50';
-    }
+    resultIcon.textContent = uiConfig.icon;
+    resultText.textContent = uiConfig.text;
+    resultText.style.color = uiConfig.color;
 
     // 显示保底提示
     if (result.isPityTriggered) {
       this.elements.pityNotice?.classList.remove('hidden');
     }
 
-    // 如果是Lu结果,显示选择按钮
-    if (result.isLu) {
+    // 根据配置显示对应的UI元素
+    if (uiConfig.showChoice) {
       this.elements.resultChoice?.classList.remove('hidden');
-    } else {
-      // 直接显示操作按钮并保存结果
+    }
+
+    if (uiConfig.showActions) {
       this.saveSpinResultDirectly(result.result, result.isPityTriggered);
       this.elements.resultActions?.classList.remove('hidden');
     }

@@ -8,9 +8,9 @@ const STORAGE_PREFIX = 'lubulu_';
 const KEYS = {
   SETTINGS: 'settings',
   HISTORY: 'spinHistory',
-  DAILY_COUNTS: 'dailySpinCounts',
   PITY_COUNTER: 'pityCounter',
   APP_STATE: 'app_state_v2'
+  // 注: DAILY_COUNTS 已移除 - 可以从 HISTORY 派生,不需要单独存储
 };
 
 /**
@@ -27,7 +27,6 @@ export class StorageManager {
         animationEnabled: true
       },
       [KEYS.HISTORY]: {},
-      [KEYS.DAILY_COUNTS]: {},
       [KEYS.PITY_COUNTER]: {
         threshold: 0,
         consecutiveFails: 0
@@ -88,19 +87,12 @@ export class StorageManager {
   async saveHistoryRecord(date, result, isPityTriggered = false) {
     const history = this._get(KEYS.HISTORY) || {};
 
-    if (!history[date]) {
-      history[date] = {
-        result,
-        spinCount: 1,
-        isPityTriggered,
-        timestamp: new Date().toISOString()
-      };
-    } else {
-      history[date].result = result;
-      history[date].spinCount = (history[date].spinCount || 1) + 1;
-      history[date].isPityTriggered = isPityTriggered;
-      history[date].timestamp = new Date().toISOString();
-    }
+    // 直接覆盖,不需要 spinCount 字段
+    history[date] = {
+      result,
+      isPityTriggered,
+      timestamp: new Date().toISOString()
+    };
 
     return this._set(KEYS.HISTORY, history);
   }
@@ -109,18 +101,6 @@ export class StorageManager {
     const history = this._get(KEYS.HISTORY) || {};
     delete history[date];
     return this._set(KEYS.HISTORY, history);
-  }
-
-  // === 每日次数相关 ===
-  async getDailyCount(date) {
-    const counts = this._get(KEYS.DAILY_COUNTS) || {};
-    return counts[date] || 0;
-  }
-
-  async updateDailyCount(date, count) {
-    const counts = this._get(KEYS.DAILY_COUNTS) || {};
-    counts[date] = count;
-    return this._set(KEYS.DAILY_COUNTS, counts);
   }
 
   // === 保底计数器相关 ===
@@ -146,7 +126,6 @@ export class StorageManager {
     return {
       settings: this._get(KEYS.SETTINGS),
       history: this._get(KEYS.HISTORY),
-      dailyCounts: this._get(KEYS.DAILY_COUNTS),
       pityCounter: this._get(KEYS.PITY_COUNTER),
       exportDate: new Date().toISOString()
     };
@@ -156,8 +135,8 @@ export class StorageManager {
     try {
       if (data.settings) this._set(KEYS.SETTINGS, data.settings);
       if (data.history) this._set(KEYS.HISTORY, data.history);
-      if (data.dailyCounts) this._set(KEYS.DAILY_COUNTS, data.dailyCounts);
       if (data.pityCounter) this._set(KEYS.PITY_COUNTER, data.pityCounter);
+      // 兼容旧版本导出的数据(忽略 dailyCounts)
       return true;
     } catch (error) {
       console.error('Import failed:', error);

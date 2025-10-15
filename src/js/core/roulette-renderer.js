@@ -5,9 +5,12 @@
  * 1. 只负责绘制和动画,不包含业务逻辑
  * 2. 接收配置和目标位置,渲染结果
  * 3. 与游戏逻辑完全解耦
+ *
+ * 设计说明:
+ * - 转盘绘制100个扇形是视觉设计需求,为了"看起来公平"
+ * - 从性能角度看只需要2个扇形(Lu/不Lu),但用户体验需要密集的扇形分布
+ * - 已优化: shouldDrawText() 智能控制文字密度,避免重叠
  */
-
-import { debounce } from '../utils/helpers.js';
 
 /**
  * 转盘渲染器
@@ -27,9 +30,6 @@ export class RouletteRenderer {
     // 优化Canvas性能
     this.ctx.imageSmoothingEnabled = true;
     this.ctx.imageSmoothingQuality = 'high';
-
-    // 防抖绘制（简化版，使用debounce）
-    this.drawDebounced = debounce(() => this.draw(), 16);
 
     // 默认配置
     this.config = {
@@ -75,9 +75,12 @@ export class RouletteRenderer {
 
   /**
    * 绘制转盘
+   *
+   * 性能说明: 绘制100个扇形是为了视觉效果,不是技术限制
+   * 如果追求极致性能,可改为只画2个扇形(Lu/不Lu)
+   * 但用户需要看到"很多小格子"才觉得公平,所以保持100个
    */
   draw() {
-
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     const sliceAngle = (2 * Math.PI) / this.config.totalSlices;
@@ -93,7 +96,6 @@ export class RouletteRenderer {
 
     // 绘制中心圆
     this.drawCenter();
-
   }
 
   /**

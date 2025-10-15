@@ -72,7 +72,6 @@ export class TodayState {
     return {
       date: this.date,
       result: this.finalResult,
-      spinCount: this.spinCount,
       isPityTriggered: this.spins.some(s => s.isPityTriggered),
       timestamp: this.spins.length > 0 ? this.spins[0].time : null
     };
@@ -191,9 +190,10 @@ export class AppConfig {
   }
 
   /**
-   * 从旧格式转换
+   * 从存储格式创建配置对象
+   * 注: 存储层使用 multiMode (boolean),内部使用 mode (string)
    */
-  static fromLegacySettings(settings) {
+  static fromStorageFormat(settings) {
     const config = new AppConfig();
     config.update({
       luProbability: settings.luProbability || 1,
@@ -206,9 +206,10 @@ export class AppConfig {
   }
 
   /**
-   * 转换为旧格式(兼容性)
+   * 转换为存储格式
+   * 注: 保持 multiMode (boolean) 以兼容现有存储数据
    */
-  toLegacyFormat() {
+  toStorageFormat() {
     return {
       luProbability: this.luProbability,
       pityDays: this.pityDays,
@@ -279,7 +280,7 @@ export class AppState {
   exportForPersistence() {
     return {
       today: this.today.toJSON(),
-      config: this.config.toLegacyFormat(),
+      config: this.config.toStorageFormat(),
       pityCounter: this.pityCounter.toJSON()
     };
   }
@@ -295,7 +296,7 @@ export class AppState {
     }
 
     if (data.config) {
-      state.config = AppConfig.fromLegacySettings(data.config);
+      state.config = AppConfig.fromStorageFormat(data.config);
     }
 
     if (data.pityCounter) {
