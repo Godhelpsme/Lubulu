@@ -9,29 +9,16 @@
   <meta name="author" content="Lubulu Team" />
   <meta name="theme-color" content="#667eea" />
   
-  <!-- PWA相关meta标签 -->
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Lubulu" />
-  
-  <!-- PWA图标 -->
-  <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
-  
   <!-- SEO优化 -->
   <meta property="og:title" content="Lubulu - 健康决策轮盘" />
   <meta property="og:description" content="一个帮助用户在健康和不健康选择之间做出决定的互动轮盘应用" />
-  <meta property="og:image" content="/icons/icon-512x512.png" />
+  <meta property="og:image" content="/preview.png" />
   <meta property="og:url" content="https://lubulu.app" />
   <meta property="og:type" content="website" />
   
   <!-- 性能优化 -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="dns-prefetch" href="https://api.lubulu.app" />
   
   <!-- 字体优化加载 -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'" />
@@ -44,20 +31,8 @@
   <link rel="stylesheet" href="/src/css/components.css" />
   <link rel="stylesheet" href="/src/css/forms.css" />
   <link rel="stylesheet" href="/src/css/responsive.css" />
-  
-  <!-- JavaScript模块预加载 -->
-  <link rel="modulepreload" href="/src/js/main.js" />
-  <link rel="modulepreload" href="/src/js/auth/auth.js" />
-  <link rel="modulepreload" href="/src/js/core/roulette.js" />
-  <link rel="modulepreload" href="/src/js/core/calendar.js" />
-  <link rel="modulepreload" href="/src/js/core/statistics.js" />
-  
-  <!-- CSP安全策略通过_headers文件配置以避免冲突 -->
-  
+
   <title>Lubulu - 健康决策轮盘</title>
-  
-  <!-- 第三方库 - 按需加载 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" async defer></script>
 </head>
 <body>
   <!-- 加载指示器 -->

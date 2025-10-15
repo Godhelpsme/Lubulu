@@ -26,11 +26,21 @@ export function getBeijingDateString() {
  * @returns {number} 随机数
  */
 export function getSecureRandom(min = 0, max = 1) {
-  if (window.crypto && window.crypto.getRandomValues) {
+  // 浏览器环境
+  if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
     const randomArray = new Uint32Array(1);
     window.crypto.getRandomValues(randomArray);
     return min + (randomArray[0] / (0xffffffff + 1)) * (max - min);
   }
+
+  // Node.js 环境
+  if (typeof global !== 'undefined' && global.crypto && global.crypto.getRandomValues) {
+    const randomArray = new Uint32Array(1);
+    global.crypto.getRandomValues(randomArray);
+    return min + (randomArray[0] / (0xffffffff + 1)) * (max - min);
+  }
+
+  // 降级到 Math.random
   return min + Math.random() * (max - min);
 }
 

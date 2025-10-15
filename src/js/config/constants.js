@@ -22,14 +22,6 @@ export const ANIMATION_CONFIG = {
   FRAME_RATE: 60, // 目标帧率
 };
 
-// ========== API 配置 ==========
-export const API_CONFIG = {
-  TIMEOUT: 10000, // 请求超时时间(ms)
-  MAX_RETRIES: 3, // 最大重试次数
-  RETRY_DELAY: 1000, // 重试延迟(ms)
-  HEALTH_CHECK_INTERVAL: 60000, // 健康检查间隔(ms)
-};
-
 // ========== 存储配置 ==========
 export const STORAGE_CONFIG = {
   CACHE_EXPIRY: 24 * 60 * 60 * 1000, // 缓存过期时间(24小时)
@@ -46,15 +38,6 @@ export const BUSINESS_CONFIG = {
   MIN_PITY_DAYS: 0, // 最小保底天数
   MAX_PITY_DAYS: 365, // 最大保底天数
   DEFAULT_PITY_DAYS: 0, // 默认保底天数
-};
-
-// ========== 认证配置 ==========
-export const AUTH_CONFIG = {
-  MIN_USERNAME_LENGTH: 3, // 最小用户名长度
-  MAX_USERNAME_LENGTH: 20, // 最大用户名长度
-  MIN_PASSWORD_LENGTH: 8, // 最小密码长度
-  TOKEN_KEY: 'lubulu_auth_token', // Token存储键
-  USER_KEY: 'lubulu_user_info', // 用户信息存储键
 };
 
 // ========== UI 配置 ==========
@@ -91,12 +74,6 @@ export const PERFORMANCE_CONFIG = {
   THROTTLE_DELAY: 1000, // 默认节流延迟(ms)
 };
 
-// ========== 验证规则 ==========
-export const VALIDATION = {
-  EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, // 邮箱验证正则
-  USERNAME_REGEX: /^[a-zA-Z0-9_-]+$/, // 用户名验证正则
-};
-
 // ========== 导出默认配置 ==========
 export const DEFAULT_SETTINGS = {
   luProbability: BUSINESS_CONFIG.DEFAULT_LU_PROBABILITY,
@@ -104,16 +81,4 @@ export const DEFAULT_SETTINGS = {
   multiMode: false,
   soundEnabled: true,
   animationEnabled: true,
-};
-
-// ========== API端点 ==========
-export const API_ENDPOINTS = {
-  HEALTH: '/api/health',
-  REGISTER: '/api/auth/register',
-  LOGIN: '/api/auth/login',
-  VALIDATE: '/api/auth/validate',
-  LOGOUT: '/api/auth/logout',
-  SETTINGS: '/api/settings',
-  HISTORY: '/api/history',
-  DAILY_COUNT: '/api/daily-count',
 };
