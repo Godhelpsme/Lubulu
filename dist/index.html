@@ -9,71 +9,28 @@
   <meta name="author" content="Lubulu Team" />
   <meta name="theme-color" content="#667eea" />
   
-  <!-- PWA相关meta标签 -->
-  <link rel="manifest" href="/manifest.json" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Lubulu" />
-  
-  <!-- PWA图标 -->
-  <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16x16.png" />
-  
   <!-- SEO优化 -->
   <meta property="og:title" content="Lubulu - 健康决策轮盘" />
   <meta property="og:description" content="一个帮助用户在健康和不健康选择之间做出决定的互动轮盘应用" />
-  <meta property="og:image" content="/icons/icon-512x512.png" />
+  <meta property="og:image" content="/preview.png" />
   <meta property="og:url" content="https://lubulu.app" />
   <meta property="og:type" content="website" />
   
   <!-- 性能优化 -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="dns-prefetch" href="https://api.lubulu.app" />
   
   <!-- 字体优化加载 -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Roboto:wght@400;700&display=swap" media="print" onload="this.media='all'" />
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Roboto:wght@400;700&display=swap" /></noscript>
   
   <!-- CSS模块化加载 -->
-  
-  <!-- JavaScript模块预加载 -->
-  <link rel="modulepreload" href="/assets/main-DJdFj8rV.js" />
-  <link rel="modulepreload" href="/src/js/auth/auth.js" />
-  <link rel="modulepreload" href="/src/js/core/roulette.js" />
-  <link rel="modulepreload" href="/assets/calendar-CpGCDyze.js" />
-  <link rel="modulepreload" href="/assets/statistics-1oMIyj21.js" />
-  
-  <!-- CSP安全策略通过_headers文件配置以避免冲突 -->
-  
+
   <title>Lubulu - 健康决策轮盘</title>
-  
-  <!-- 第三方库 - 按需加载 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" async defer></script>
-  <script type="module" crossorigin src="/assets/index-C3M0KBno.js"></script>
+  <script type="module" crossorigin src="/assets/index-CW46aVMo.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/index-Bgb-USgw.css">
 </head>
 <body>
-  <!-- 加载指示器 -->
-  <div id="loadingSpinner" class="loading-spinner">
-    <div class="spinner"></div>
-    <p>Lubulu 正在加载...</p>
-  </div>
-
-  <!-- 应用更新提示 -->
-  <div id="updateAvailable" class="update-banner hidden">
-    <span>发现新版本！</span>
-    <button id="updateBtn" class="update-btn">立即更新</button>
-    <button id="dismissUpdateBtn" class="dismiss-btn">×</button>
-  </div>
-
-  <!-- 离线提示 -->
-  <div id="offlineNotice" class="offline-notice hidden">
-    <span>当前处于离线状态，部分功能可能受限</span>
-  </div>
-
   <!-- AppBar -->
   <header class="app-bar glass">
     <div class="app-bar__content">
@@ -242,7 +199,7 @@
           <li>📊 优化统计显示</li>
         </ul>
       </div>
-      
+
       <div class="update-item">
         <h4>🛠️ 使用说明</h4>
         <ul>
@@ -252,7 +209,7 @@
         </ul>
       </div>
     </div>
-    
+
     <div class="dialog-actions">
       <button id="updateLogOkBtn" class="btn-primary">我知道了</button>
     </div>
@@ -272,90 +229,5 @@
     </div>
   </div>
 
-  
-  <!-- Service Worker注册 -->
-  <script>
-    // Service Worker注册
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then((registration) => {
-            console.log('SW registered: ', registration);
-            
-            // 检查更新
-            registration.addEventListener('updatefound', () => {
-              const newWorker = registration.installing;
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // 显示更新提示
-                  document.getElementById('updateAvailable').classList.remove('hidden');
-                }
-              });
-            });
-          })
-          .catch((registrationError) => {
-            console.log('SW registration failed: ', registrationError);
-          });
-      });
-      
-      // 监听SW消息
-      navigator.serviceWorker.addEventListener('message', (event) => {
-        if (event.data && event.data.type === 'CACHE_UPDATED') {
-          document.getElementById('updateAvailable').classList.remove('hidden');
-        }
-      });
-    }
-    
-    // 网络状态监听
-    window.addEventListener('online', () => {
-      document.getElementById('offlineNotice').classList.add('hidden');
-    });
-    
-    window.addEventListener('offline', () => {
-      document.getElementById('offlineNotice').classList.remove('hidden');
-    });
-    
-    // 更新按钮事件
-    document.addEventListener('DOMContentLoaded', () => {
-      const updateBtn = document.getElementById('updateBtn');
-      const dismissBtn = document.getElementById('dismissUpdateBtn');
-      
-      updateBtn?.addEventListener('click', () => {
-        if (navigator.serviceWorker.controller) {
-          navigator.serviceWorker.controller.postMessage({ type: 'SKIP_WAITING' });
-          window.location.reload();
-        }
-      });
-      
-      dismissBtn?.addEventListener('click', () => {
-        document.getElementById('updateAvailable').classList.add('hidden');
-      });
-      
-      // 隐藏加载指示器
-      const spinner = document.getElementById('loadingSpinner');
-      if (spinner) {
-        spinner.style.display = 'none';
-      }
-    });
-    
-    // 错误处理
-    window.addEventListener('error', (event) => {
-      console.error('Global error:', event.error);
-      // 可以在这里添加错误上报逻辑
-    });
-    
-    window.addEventListener('unhandledrejection', (event) => {
-      console.error('Unhandled promise rejection:', event.reason);
-      // 可以在这里添加错误上报逻辑
-    });
-    
-    // 性能监控
-    window.addEventListener('load', () => {
-      if ('performance' in window) {
-        const perfData = performance.getEntriesByType('navigation')[0];
-        console.log('Page load time:', perfData.loadEventEnd - perfData.fetchStart, 'ms');
-      }
-    });
-  </script>
 </body>
 </html> 
