@@ -1,5 +1,7 @@
 # Lubulu
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 **A probability-driven decision wheel powered by edge computing**
 
 Make better decisions through gamification. Lubulu is a minimalist web app that uses customizable probability mechanics and cloud synchronization to help you break decision paralysis and track behavioral patterns.
