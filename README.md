@@ -72,54 +72,11 @@ npx wrangler login
 
 ### Deploy to Cloudflare Pages
 
-Deploying Lubulu requires three steps: **Create Resources → Deploy Code → Bind Resources**
+Deploying Lubulu requires four steps: **Deploy Code → Create Resources → Bind Resources → Initialize Database**
 
 ---
 
-#### **Step 1: Create Cloudflare Resources**
-
-Use Wrangler CLI to create required KV and D1 resources:
-
-```bash
-# Create D1 database
-npx wrangler d1 create lubulu-db
-```
-
-**Important**: Note the `database_id` from the output (needed later):
-```
-✅ Successfully created DB 'lubulu-db'
-📋 Database ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-```
-
-```bash
-# Create KV namespace
-npx wrangler kv:namespace create SETTINGS
-```
-
-**Important**: Note the `id` from the output:
-```
-✅ Successfully created KV namespace 'SETTINGS'
-📋 ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
----
-
-#### **Step 2: Initialize Database**
-
-Run migration scripts to create tables:
-
-```bash
-# Replace YOUR_DB_ID with the database_id from Step 1
-npx wrangler d1 execute lubulu-db --remote --file=./migrations/0001_init.sql
-npx wrangler d1 execute lubulu-db --remote --file=./migrations/0002_remove_user_settings.sql
-npx wrangler d1 execute lubulu-db --remote --file=./migrations/0003_change_is_pity_to_boolean.sql
-```
-
-If it says database not found, verify your `database_id` is correct.
-
----
-
-#### **Step 3: Deploy Code to Cloudflare Pages**
+#### **Step 1: Deploy Code to Cloudflare Pages**
 
 **Option A: Use Cloudflare Dashboard (Recommended)** 🎯
 
@@ -143,7 +100,7 @@ If it says database not found, verify your `database_id` is correct.
    - **Build output directory**: `dist`
    - Click **Save and Deploy**
 
-4. **First deployment will fail** - This is expected! KV and D1 aren't bound yet.
+4. **First deployment will fail** - This is expected! KV and D1 aren't created yet.
 
 ---
 
@@ -159,13 +116,35 @@ If prompted to create new project, confirm with `y`.
 
 ---
 
-#### **Step 4: Bind KV and D1 to Pages Project**
+#### **Step 2: Create D1 Database and KV Namespace in Dashboard**
 
-After deployment, you must manually bind resources in Dashboard:
+**Create D1 Database**:
+
+1. In Cloudflare Dashboard left menu, click **Workers & Pages**
+2. Switch to **D1 SQL Database** tab
+3. Click **Create database** button
+4. Configure:
+   - **Database name**: `lubulu-db`
+   - **Location**: Choose closest region (recommended **Automatic**)
+5. Click **Create** to create the database
+
+**Create KV Namespace**:
+
+1. In Cloudflare Dashboard left menu, click **Workers & Pages**
+2. Switch to **KV** tab
+3. Click **Create a namespace** button
+4. Configure:
+   - **Namespace Name**: `SETTINGS` (or any name, used in binding later)
+5. Click **Add** to create the namespace
+
+---
+
+#### **Step 3: Bind Resources to Pages Project**
+
+Return to your Pages project and bind the newly created resources:
 
 1. **Enter project settings**:
-   - In Cloudflare Dashboard, open **Workers & Pages**
-   - Select your `lubulu` project
+   - In **Workers & Pages**, select your `lubulu` project
    - Go to **Settings** tab
 
 2. **Bind D1 database**:
@@ -185,21 +164,49 @@ After deployment, you must manually bind resources in Dashboard:
      - **KV namespace**: Select your `SETTINGS` namespace
    - Click **Save**
 
-4. **Redeploy**:
-   - Go to **Deployments** tab
-   - Click the **⋯** menu on the latest deployment
-   - Select **Retry deployment**
+---
+
+#### **Step 4: Initialize Database**
+
+Run migration scripts via D1 Console:
+
+1. **Enter D1 Console**:
+   - In Dashboard, open **Workers & Pages** → **D1 SQL Database**
+   - Select `lubulu-db` database
+   - Click **Console** tab
+
+2. **Execute Migration SQL**:
+
+   Open [`migrations/all.sql`](migrations/all.sql) in your local project, copy all content, paste into console, and click **Execute**.
+
+   This file contains all required database structures and indexes.
+
+3. **Verify Table Structure**:
+
+   After successful execution, run the following SQL in console:
+   ```sql
+   SELECT name FROM sqlite_master WHERE type='table';
+   ```
+
+   You should see the `spin_history` table.
 
 ---
 
-#### **Step 5: Verify Deployment**
+#### **Step 5: Redeploy and Verify**
 
-After successful deployment, visit `https://lubulu.pages.dev` (or your custom domain).
+1. **Trigger Redeployment**:
+   - Return to Pages project's **Deployments** tab
+   - Click the **⋯** menu on the latest deployment
+   - Select **Retry deployment**
 
-**Test functionality**:
-- ✅ First visit should show the roulette interface
-- ✅ Adjust probability and click "Spin"
-- ✅ View history and statistics
+2. **Verify Functionality**:
+
+   After successful deployment, visit `https://lubulu.pages.dev` (or your custom domain).
+
+   **Test functionality**:
+   - ✅ First visit should show the roulette interface
+   - ✅ Adjust probability and click "Spin"
+   - ✅ View history and statistics
 
 **If you encounter errors**, check the "Troubleshooting" section below.
 
@@ -217,14 +224,7 @@ npm run preview
 # → http://localhost:8788
 ```
 
-**Note**: `npm run preview` requires local D1 and KV setup:
-```bash
-# Create local D1 database
-npx wrangler d1 execute lubulu-db --local --file=./migrations/0001_init.sql
-# ... run other migrations
-
-# Local KV is created automatically (no manual action needed)
-```
+**Note**: `npm run preview` requires local binding configuration. Recommend developing directly in Dashboard, or check [Wrangler local development docs](https://developers.cloudflare.com/workers/wrangler/commands/#dev).
 
 ---
 

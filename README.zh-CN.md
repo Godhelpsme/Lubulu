@@ -72,54 +72,11 @@ npx wrangler login
 
 ### 部署到 Cloudflare Pages
 
-部署 Lubulu 需要三个步骤:**创建资源 → 部署代码 → 绑定资源**
+部署 Lubulu 需要四个步骤:**部署代码 → 创建资源 → 绑定资源 → 初始化数据库**
 
 ---
 
-#### **步骤 1: 创建 Cloudflare 资源**
-
-使用 Wrangler CLI 创建所需的 KV 和 D1 资源:
-
-```bash
-# 创建 D1 数据库
-npx wrangler d1 create lubulu-db
-```
-
-**重要**: 记录输出中的 `database_id`,稍后需要用到:
-```
-✅ Successfully created DB 'lubulu-db'
-📋 Database ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-```
-
-```bash
-# 创建 KV 命名空间
-npx wrangler kv:namespace create SETTINGS
-```
-
-**重要**: 记录输出中的 `id`:
-```
-✅ Successfully created KV namespace 'SETTINGS'
-📋 ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
----
-
-#### **步骤 2: 初始化数据库**
-
-运行迁移脚本创建数据表:
-
-```bash
-# 将 YOUR_DB_ID 替换为步骤 1 中的 database_id
-npx wrangler d1 execute lubulu-db --remote --file=./migrations/0001_init.sql
-npx wrangler d1 execute lubulu-db --remote --file=./migrations/0002_remove_user_settings.sql
-npx wrangler d1 execute lubulu-db --remote --file=./migrations/0003_change_is_pity_to_boolean.sql
-```
-
-如果提示找不到数据库,请检查 `database_id` 是否正确。
-
----
-
-#### **步骤 3: 部署代码到 Cloudflare Pages**
+#### **步骤 1: 部署代码到 Cloudflare Pages**
 
 **方式 A: 使用 Cloudflare Dashboard (推荐)** 🎯
 
@@ -143,7 +100,7 @@ npx wrangler d1 execute lubulu-db --remote --file=./migrations/0003_change_is_pi
    - **构建输出目录**: `dist`
    - 点击 **Save and Deploy**
 
-4. **首次部署会失败** - 这是正常的!因为还没有绑定 KV 和 D1。
+4. **首次部署会失败** - 这是正常的!因为还没有创建和绑定 KV 及 D1。
 
 ---
 
@@ -159,13 +116,35 @@ npx wrangler pages deploy dist --project-name=lubulu
 
 ---
 
-#### **步骤 4: 绑定 KV 和 D1 到 Pages 项目**
+#### **步骤 2: 在 Dashboard 创建 D1 数据库和 KV 命名空间**
 
-部署完成后,必须在 Dashboard 中手动绑定资源:
+**创建 D1 数据库**:
+
+1. 在 Cloudflare Dashboard 左侧菜单,点击 **Workers & Pages**
+2. 切换到 **D1 SQL Database** 标签页
+3. 点击 **Create database** 按钮
+4. 配置:
+   - **Database name**: `lubulu-db`
+   - **Location**: 选择离你最近的区域 (推荐 **Automatic**)
+5. 点击 **Create** 创建数据库
+
+**创建 KV 命名空间**:
+
+1. 在 Cloudflare Dashboard 左侧菜单,点击 **Workers & Pages**
+2. 切换到 **KV** 标签页
+3. 点击 **Create a namespace** 按钮
+4. 配置:
+   - **Namespace Name**: `SETTINGS` (或任意名称,稍后绑定时使用)
+5. 点击 **Add** 创建命名空间
+
+---
+
+#### **步骤 3: 绑定资源到 Pages 项目**
+
+返回你的 Pages 项目,绑定刚创建的资源:
 
 1. **进入项目设置**:
-   - 在 Cloudflare Dashboard 中打开 **Workers & Pages**
-   - 选择你的 `lubulu` 项目
+   - 在 **Workers & Pages** 中选择你的 `lubulu` 项目
    - 进入 **Settings** 标签页
 
 2. **绑定 D1 数据库**:
@@ -185,21 +164,49 @@ npx wrangler pages deploy dist --project-name=lubulu
      - **KV namespace**: 选择你创建的 `SETTINGS` 命名空间
    - 点击 **Save**
 
-4. **重新部署**:
-   - 进入 **Deployments** 标签页
-   - 点击最新部署右侧的 **⋯** 菜单
-   - 选择 **Retry deployment**
+---
+
+#### **步骤 4: 初始化数据库**
+
+通过 D1 控制台运行迁移脚本:
+
+1. **进入 D1 控制台**:
+   - 在 Dashboard 中打开 **Workers & Pages** → **D1 SQL Database**
+   - 选择 `lubulu-db` 数据库
+   - 点击 **Console** 标签页
+
+2. **执行迁移 SQL**:
+
+   打开本地项目的 [`migrations/all.sql`](migrations/all.sql) 文件,复制全部内容,粘贴到控制台,点击 **Execute**。
+
+   这个文件包含了所有必需的数据库结构和索引。
+
+3. **验证表结构**:
+
+   执行成功后,在控制台运行以下 SQL 验证:
+   ```sql
+   SELECT name FROM sqlite_master WHERE type='table';
+   ```
+
+   应该看到 `spin_history` 表。
 
 ---
 
-#### **步骤 5: 验证部署**
+#### **步骤 5: 重新部署并验证**
 
-部署成功后,访问 `https://lubulu.pages.dev` (或你的自定义域名)。
+1. **触发重新部署**:
+   - 返回 Pages 项目的 **Deployments** 标签页
+   - 点击最新部署右侧的 **⋯** 菜单
+   - 选择 **Retry deployment**
 
-**测试功能**:
-- ✅ 首次访问应该能看到轮盘界面
-- ✅ 调整概率并点击"转"按钮
-- ✅ 查看历史记录和统计数据
+2. **验证功能**:
+
+   部署成功后,访问 `https://lubulu.pages.dev` (或你的自定义域名)。
+
+   **测试功能**:
+   - ✅ 首次访问应该能看到轮盘界面
+   - ✅ 调整概率并点击"转"按钮
+   - ✅ 查看历史记录和统计数据
 
 **如果遇到错误**,查看下方的"故障排除"章节。
 
@@ -217,14 +224,7 @@ npm run preview
 # → http://localhost:8788
 ```
 
-**注意**: `npm run preview` 需要先在本地创建 D1 和 KV:
-```bash
-# 创建本地 D1 数据库
-npx wrangler d1 execute lubulu-db --local --file=./migrations/0001_init.sql
-# ... 运行其他迁移
-
-# 创建本地 KV (自动创建,无需手动操作)
-```
+**注意**: `npm run preview` 需要先配置本地绑定。建议直接在 Dashboard 中开发和测试,或查阅 [Wrangler 本地开发文档](https://developers.cloudflare.com/workers/wrangler/commands/#dev)。
 
 ---
 
