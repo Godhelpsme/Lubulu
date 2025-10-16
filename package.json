@@ -7,11 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "npm run build && wrangler pages dev dist",
-    "deploy": "npm run build && wrangler pages deploy dist",
-    "db:create": "wrangler d1 create lubulu-db",
-    "db:migrate": "wrangler d1 migrations apply lubulu-db --remote",
-    "db:local": "wrangler d1 migrations apply lubulu-db --local",
-    "kv:create": "wrangler kv:namespace create SETTINGS"
+    "deploy": "npm run build && wrangler pages deploy dist"
   },
   "keywords": [
     "decision-making",

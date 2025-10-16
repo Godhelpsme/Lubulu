@@ -52,50 +52,179 @@ Built on Cloudflare's global edge network for instant responses worldwide.
 
 ### Prerequisites
 
-```bash
-Node.js 18+
-Cloudflare account (free tier sufficient)
-```
+- Node.js 18+
+- Cloudflare account (free tier sufficient)
+- Git (for repository management)
 
 ### Installation
 
 ```bash
-# Clone and install
+# 1. Fork or clone the repository
 git clone <your-repo>
 cd lubulu
+
+# 2. Install dependencies
 npm install
 
-# Authenticate
+# 3. Authenticate with Cloudflare
 npx wrangler login
 ```
 
-### Setup Infrastructure
+### Deploy to Cloudflare Pages
+
+Deploying Lubulu requires three steps: **Create Resources → Deploy Code → Bind Resources**
+
+---
+
+#### **Step 1: Create Cloudflare Resources**
+
+Use Wrangler CLI to create required KV and D1 resources:
 
 ```bash
 # Create D1 database
 npx wrangler d1 create lubulu-db
-# → Copy database_id to wrangler.toml
-
-# Run migrations
-npx wrangler d1 migrations apply lubulu-db --remote
-
-# Create KV namespace
-npx wrangler kv:namespace create SETTINGS
-# → Copy id to wrangler.toml
-
-# Create preview namespace
-npx wrangler kv:namespace create SETTINGS --preview
-# → Copy preview_id to wrangler.toml
 ```
 
-### Deploy
+**Important**: Note the `database_id` from the output (needed later):
+```
+✅ Successfully created DB 'lubulu-db'
+📋 Database ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
 
 ```bash
-npm run build
-npm run deploy
+# Create KV namespace
+npx wrangler kv:namespace create SETTINGS
 ```
 
-Live at `https://your-project.pages.dev` 🚀
+**Important**: Note the `id` from the output:
+```
+✅ Successfully created KV namespace 'SETTINGS'
+📋 ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+---
+
+#### **Step 2: Initialize Database**
+
+Run migration scripts to create tables:
+
+```bash
+# Replace YOUR_DB_ID with the database_id from Step 1
+npx wrangler d1 execute lubulu-db --remote --file=./migrations/0001_init.sql
+npx wrangler d1 execute lubulu-db --remote --file=./migrations/0002_remove_user_settings.sql
+npx wrangler d1 execute lubulu-db --remote --file=./migrations/0003_change_is_pity_to_boolean.sql
+```
+
+If it says database not found, verify your `database_id` is correct.
+
+---
+
+#### **Step 3: Deploy Code to Cloudflare Pages**
+
+**Option A: Use Cloudflare Dashboard (Recommended)** 🎯
+
+1. **Push code to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
+   ```
+
+2. **Create Pages project in Cloudflare**:
+   - Login to [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - Go to **Workers & Pages** → Click **Create application**
+   - Select **Pages** → **Connect to Git**
+   - Authorize and select your GitHub repository
+
+3. **Configure build settings**:
+   - **Project name**: `lubulu` (or any name)
+   - **Production branch**: `main`
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+   - Click **Save and Deploy**
+
+4. **First deployment will fail** - This is expected! KV and D1 aren't bound yet.
+
+---
+
+**Option B: Use Wrangler CLI** ⌨️
+
+```bash
+# Build and deploy
+npm run build
+npx wrangler pages deploy dist --project-name=lubulu
+```
+
+If prompted to create new project, confirm with `y`.
+
+---
+
+#### **Step 4: Bind KV and D1 to Pages Project**
+
+After deployment, you must manually bind resources in Dashboard:
+
+1. **Enter project settings**:
+   - In Cloudflare Dashboard, open **Workers & Pages**
+   - Select your `lubulu` project
+   - Go to **Settings** tab
+
+2. **Bind D1 database**:
+   - Scroll to **Functions** section
+   - Find **D1 database bindings** area
+   - Click **Add binding**
+   - Configure:
+     - **Variable name**: `DB` (must match exactly)
+     - **D1 database**: Select `lubulu-db`
+   - Click **Save**
+
+3. **Bind KV namespace**:
+   - In the same page, find **KV namespace bindings** area
+   - Click **Add binding**
+   - Configure:
+     - **Variable name**: `SETTINGS` (must match exactly)
+     - **KV namespace**: Select your `SETTINGS` namespace
+   - Click **Save**
+
+4. **Redeploy**:
+   - Go to **Deployments** tab
+   - Click the **⋯** menu on the latest deployment
+   - Select **Retry deployment**
+
+---
+
+#### **Step 5: Verify Deployment**
+
+After successful deployment, visit `https://lubulu.pages.dev` (or your custom domain).
+
+**Test functionality**:
+- ✅ First visit should show the roulette interface
+- ✅ Adjust probability and click "Spin"
+- ✅ View history and statistics
+
+**If you encounter errors**, check the "Troubleshooting" section below.
+
+---
+
+### Local Development
+
+```bash
+# Start Vite dev server (frontend only, no backend API)
+npm run dev
+# → http://localhost:5173
+
+# Preview with Wrangler locally (full functionality with Workers API)
+npm run preview
+# → http://localhost:8788
+```
+
+**Note**: `npm run preview` requires local D1 and KV setup:
+```bash
+# Create local D1 database
+npx wrangler d1 execute lubulu-db --local --file=./migrations/0001_init.sql
+# ... run other migrations
+
+# Local KV is created automatically (no manual action needed)
+```
 
 ---
 
@@ -273,30 +402,37 @@ lubulu/
 
 ## Configuration
 
-### Environment Setup
+### Resource Bindings
 
-Edit `wrangler.toml` after creating resources:
+**Important**: For Cloudflare Pages deployments, **DO NOT** configure KV and D1 bindings in `wrangler.toml`.
+
+All resource bindings must be configured in Cloudflare Dashboard:
+
+1. Go to **Workers & Pages** → Your project → **Settings** → **Functions**
+2. Add the following bindings:
+   - **KV Namespace Binding**:
+     - Variable name: `SETTINGS`
+     - KV namespace: Select your created namespace
+   - **D1 Database Binding**:
+     - Variable name: `DB`
+     - D1 database: Select `lubulu-db`
+
+See Step 4 in the "Quick Start" section above for detailed instructions.
+
+### Environment Variables
+
+The only required configuration in `wrangler.toml`:
 
 ```toml
 name = "lubulu"
-main = "src/worker/index.js"
 compatibility_date = "2024-01-01"
-
 pages_build_output_dir = "dist"
-
-[[kv_namespaces]]
-binding = "SETTINGS"
-id = "YOUR_KV_ID"
-preview_id = "YOUR_PREVIEW_KV_ID"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "lubulu-db"
-database_id = "YOUR_DB_ID"
 
 [vars]
 ENVIRONMENT = "production"
 ```
+
+To add other environment variables, configure them in Dashboard under **Settings** → **Environment variables**.
 
 ---
 
@@ -362,65 +498,77 @@ First Visit → Generate UUID → Store in Cookie (1yr TTL)
 
 ---
 
-## Deployment
+## Automated Deployment
 
-### Option 1: GitHub Actions (Recommended) 🤖
+### GitHub Actions Auto-Deploy (Recommended) 🤖
 
-Automatic deployment on every push to `main` branch.
+After completing Steps 1-4 in "Quick Start" above, you can configure GitHub Actions for automatic deployment.
 
-**Setup (One-time):**
+**Prerequisites**:
+- Completed KV/D1 resource creation and binding (see "Quick Start" above)
+- Already created Pages project in Cloudflare Dashboard
 
-1. Get Cloudflare credentials:
+**Configuration Steps**:
+
+1. **Get Cloudflare API credentials**:
    - Visit [Cloudflare Dashboard](https://dash.cloudflare.com)
-   - **API Token**: Profile → API Tokens → Create Token (use "Edit Cloudflare Workers" template)
-   - **Account ID**: Copy from Dashboard homepage
+   - Click your profile icon → **My Profile** → **API Tokens**
+   - Click **Create Token** → Use "Edit Cloudflare Workers" template
+   - Copy the generated **API Token**
+   - Return to Dashboard homepage, copy **Account ID** (in right sidebar)
 
-2. Add secrets to GitHub repository:
+2. **Add GitHub Secrets**:
+   - Open your GitHub repository
    - Go to **Settings** → **Secrets and variables** → **Actions**
-   - Click **New repository secret**
-   - Add:
-     - `CLOUDFLARE_API_TOKEN` - Your API token
-     - `CLOUDFLARE_ACCOUNT_ID` - Your account ID
+   - Click **New repository secret**, add:
+     - `CLOUDFLARE_API_TOKEN` = Your API token
+     - `CLOUDFLARE_ACCOUNT_ID` = Your account ID
 
-3. Push to trigger deployment:
+3. **Trigger auto-deployment**:
    ```bash
+   git add .
+   git commit -m "Setup auto deployment"
    git push origin main
    ```
 
-**That's it!** Every push to `main` will:
-- ✅ Build the project
-- ✅ Deploy to Cloudflare Pages
-- ✅ Run database migrations (production only)
+**How it works**:
+
+Every push to `main` branch, GitHub Actions automatically:
+- ✅ Installs dependencies
+- ✅ Runs build (`npm run build`)
+- ✅ Deploys to Cloudflare Pages
+- ✅ Triggers redeployment (applies latest bindings)
 
 Check deployment status:
-- GitHub: **Actions** tab
-- Cloudflare: **Workers & Pages** → **lubulu** → **Deployments**
+- GitHub: Repository **Actions** tab
+- Cloudflare: **Workers & Pages** → Your project → **Deployments**
 
-**Workflow files:**
-- `.github/workflows/deploy.yml` - Simple deployment
-- `.github/workflows/ci-cd.yml` - Full CI/CD with preview environments
+**Workflow file**: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
 
-### Option 2: CLI (Manual)
+---
 
-```bash
-npm run deploy
-```
+### Other Deployment Methods
 
-### Option 3: Cloudflare Dashboard Integration
-
-1. Push to GitHub
-2. Connect repo in Cloudflare Dashboard
-3. Set build config:
-   - **Command**: `npm run build`
-   - **Output**: `dist`
-4. Auto-deploy on push
-
-### Option 4: One-time Manual Deploy
+#### Manual CLI Deploy
 
 ```bash
 npm run build
-npx wrangler pages deploy dist
+npx wrangler pages deploy dist --project-name=lubulu
 ```
+
+**Note**: Still requires manual KV and D1 binding in Dashboard.
+
+#### Cloudflare Git Integration
+
+If not using GitHub Actions, you can configure Git integration in Cloudflare Dashboard:
+
+1. **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**
+2. Select repository and configure:
+   - **Build command**: `npm run build`
+   - **Output directory**: `dist`
+3. Each push automatically triggers build and deploy
+
+**Note**: Still requires manual KV and D1 binding as described in "Quick Start".
 
 ---
 

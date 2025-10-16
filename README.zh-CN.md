@@ -52,50 +52,179 @@ Lubulu 将决策过程转变为互动体验:
 
 ### 前置要求
 
-```bash
-Node.js 18+
-Cloudflare 账号 (免费版即可)
-```
+- Node.js 18+
+- Cloudflare 账号 (免费版即可)
+- Git (用于仓库管理)
 
 ### 安装
 
 ```bash
-# 克隆并安装
+# 1. Fork 或克隆仓库
 git clone <your-repo>
 cd lubulu
+
+# 2. 安装依赖
 npm install
 
-# 认证
+# 3. 认证 Cloudflare
 npx wrangler login
 ```
 
-### 配置基础设施
+### 部署到 Cloudflare Pages
+
+部署 Lubulu 需要三个步骤:**创建资源 → 部署代码 → 绑定资源**
+
+---
+
+#### **步骤 1: 创建 Cloudflare 资源**
+
+使用 Wrangler CLI 创建所需的 KV 和 D1 资源:
 
 ```bash
 # 创建 D1 数据库
 npx wrangler d1 create lubulu-db
-# → 复制 database_id 到 wrangler.toml
-
-# 运行迁移
-npx wrangler d1 migrations apply lubulu-db --remote
-
-# 创建 KV 命名空间
-npx wrangler kv:namespace create SETTINGS
-# → 复制 id 到 wrangler.toml
-
-# 创建预览命名空间
-npx wrangler kv:namespace create SETTINGS --preview
-# → 复制 preview_id 到 wrangler.toml
 ```
 
-### 部署
+**重要**: 记录输出中的 `database_id`,稍后需要用到:
+```
+✅ Successfully created DB 'lubulu-db'
+📋 Database ID: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+```
 
 ```bash
-npm run build
-npm run deploy
+# 创建 KV 命名空间
+npx wrangler kv:namespace create SETTINGS
 ```
 
-访问 `https://your-project.pages.dev` 即可使用 🚀
+**重要**: 记录输出中的 `id`:
+```
+✅ Successfully created KV namespace 'SETTINGS'
+📋 ID: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+---
+
+#### **步骤 2: 初始化数据库**
+
+运行迁移脚本创建数据表:
+
+```bash
+# 将 YOUR_DB_ID 替换为步骤 1 中的 database_id
+npx wrangler d1 execute lubulu-db --remote --file=./migrations/0001_init.sql
+npx wrangler d1 execute lubulu-db --remote --file=./migrations/0002_remove_user_settings.sql
+npx wrangler d1 execute lubulu-db --remote --file=./migrations/0003_change_is_pity_to_boolean.sql
+```
+
+如果提示找不到数据库,请检查 `database_id` 是否正确。
+
+---
+
+#### **步骤 3: 部署代码到 Cloudflare Pages**
+
+**方式 A: 使用 Cloudflare Dashboard (推荐)** 🎯
+
+1. **推送代码到 GitHub**:
+   ```bash
+   git add .
+   git commit -m "Initial commit"
+   git push origin main
+   ```
+
+2. **在 Cloudflare 创建 Pages 项目**:
+   - 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - 进入 **Workers & Pages** → 点击 **Create application**
+   - 选择 **Pages** → **Connect to Git**
+   - 授权并选择你的 GitHub 仓库
+
+3. **配置构建设置**:
+   - **项目名称**: `lubulu` (或任意名称)
+   - **生产分支**: `main`
+   - **构建命令**: `npm run build`
+   - **构建输出目录**: `dist`
+   - 点击 **Save and Deploy**
+
+4. **首次部署会失败** - 这是正常的!因为还没有绑定 KV 和 D1。
+
+---
+
+**方式 B: 使用 Wrangler CLI** ⌨️
+
+```bash
+# 构建并部署
+npm run build
+npx wrangler pages deploy dist --project-name=lubulu
+```
+
+如果提示创建新项目,输入 `y` 确认。
+
+---
+
+#### **步骤 4: 绑定 KV 和 D1 到 Pages 项目**
+
+部署完成后,必须在 Dashboard 中手动绑定资源:
+
+1. **进入项目设置**:
+   - 在 Cloudflare Dashboard 中打开 **Workers & Pages**
+   - 选择你的 `lubulu` 项目
+   - 进入 **Settings** 标签页
+
+2. **绑定 D1 数据库**:
+   - 滚动到 **Functions** 部分
+   - 找到 **D1 database bindings** 区域
+   - 点击 **Add binding**
+   - 配置:
+     - **Variable name**: `DB` (必须精确匹配)
+     - **D1 database**: 选择 `lubulu-db`
+   - 点击 **Save**
+
+3. **绑定 KV 命名空间**:
+   - 在同一页面找到 **KV namespace bindings** 区域
+   - 点击 **Add binding**
+   - 配置:
+     - **Variable name**: `SETTINGS` (必须精确匹配)
+     - **KV namespace**: 选择你创建的 `SETTINGS` 命名空间
+   - 点击 **Save**
+
+4. **重新部署**:
+   - 进入 **Deployments** 标签页
+   - 点击最新部署右侧的 **⋯** 菜单
+   - 选择 **Retry deployment**
+
+---
+
+#### **步骤 5: 验证部署**
+
+部署成功后,访问 `https://lubulu.pages.dev` (或你的自定义域名)。
+
+**测试功能**:
+- ✅ 首次访问应该能看到轮盘界面
+- ✅ 调整概率并点击"转"按钮
+- ✅ 查看历史记录和统计数据
+
+**如果遇到错误**,查看下方的"故障排除"章节。
+
+---
+
+### 本地开发
+
+```bash
+# 启动 Vite 开发服务器 (仅前端,无后端 API)
+npm run dev
+# → http://localhost:5173
+
+# 使用 Wrangler 本地预览完整功能 (包含 Workers API)
+npm run preview
+# → http://localhost:8788
+```
+
+**注意**: `npm run preview` 需要先在本地创建 D1 和 KV:
+```bash
+# 创建本地 D1 数据库
+npx wrangler d1 execute lubulu-db --local --file=./migrations/0001_init.sql
+# ... 运行其他迁移
+
+# 创建本地 KV (自动创建,无需手动操作)
+```
 
 ---
 
@@ -273,30 +402,37 @@ lubulu/
 
 ## 配置
 
-### 环境设置
+### 资源绑定
 
-创建资源后编辑 `wrangler.toml`:
+**重要**: 对于 Cloudflare Pages 部署,**不要**在 `wrangler.toml` 中配置 KV 和 D1 绑定。
+
+所有资源绑定必须在 Cloudflare Dashboard 中配置:
+
+1. 前往 **Workers & Pages** → 你的项目 → **Settings** → **Functions**
+2. 添加以下绑定:
+   - **KV Namespace Binding**:
+     - Variable name: `SETTINGS`
+     - KV namespace: 选择你创建的命名空间
+   - **D1 Database Binding**:
+     - Variable name: `DB`
+     - D1 database: 选择 `lubulu-db`
+
+详细步骤请参考上方"快速开始"章节的步骤 4。
+
+### 环境变量
+
+`wrangler.toml` 中唯一需要的配置:
 
 ```toml
 name = "lubulu"
-main = "src/worker/index.js"
 compatibility_date = "2024-01-01"
-
 pages_build_output_dir = "dist"
-
-[[kv_namespaces]]
-binding = "SETTINGS"
-id = "YOUR_KV_ID"
-preview_id = "YOUR_PREVIEW_KV_ID"
-
-[[d1_databases]]
-binding = "DB"
-database_name = "lubulu-db"
-database_id = "YOUR_DB_ID"
 
 [vars]
 ENVIRONMENT = "production"
 ```
+
+如需添加其他环境变量,在 Dashboard 的 **Settings** → **Environment variables** 中配置。
 
 ---
 
@@ -362,65 +498,77 @@ CREATE INDEX idx_user_timestamp ON spin_history(user_id, timestamp);
 
 ---
 
-## 部署
+## 自动化部署
 
-### 方式一: GitHub Actions (推荐) 🤖
+### GitHub Actions 自动部署 (推荐) 🤖
 
-推送到 `main` 分支自动部署。
+完成上述"快速开始"的步骤 1-4 后,可以配置 GitHub Actions 实现自动部署。
 
-**配置 (一次性):**
+**前置条件**:
+- 已完成 KV/D1 资源创建和绑定 (见上方"快速开始")
+- 已在 Cloudflare Dashboard 创建 Pages 项目
 
-1. 获取 Cloudflare 凭证:
+**配置步骤**:
+
+1. **获取 Cloudflare API 凭证**:
    - 访问 [Cloudflare Dashboard](https://dash.cloudflare.com)
-   - **API Token**: 个人资料 → API Tokens → 创建 Token (使用 "Edit Cloudflare Workers" 模板)
-   - **Account ID**: 从 Dashboard 首页复制
+   - 点击右上角头像 → **My Profile** → **API Tokens**
+   - 点击 **Create Token** → 使用 "Edit Cloudflare Workers" 模板
+   - 复制生成的 **API Token**
+   - 返回 Dashboard 首页,复制 **Account ID** (在右侧栏)
 
-2. 添加 Secrets 到 GitHub 仓库:
+2. **添加 GitHub Secrets**:
+   - 打开你的 GitHub 仓库
    - 进入 **Settings** → **Secrets and variables** → **Actions**
-   - 点击 **New repository secret**
-   - 添加:
-     - `CLOUDFLARE_API_TOKEN` - 你的 API token
-     - `CLOUDFLARE_ACCOUNT_ID` - 你的 account ID
+   - 点击 **New repository secret**,添加:
+     - `CLOUDFLARE_API_TOKEN` = 你的 API token
+     - `CLOUDFLARE_ACCOUNT_ID` = 你的 account ID
 
-3. 推送代码触发部署:
+3. **触发自动部署**:
    ```bash
+   git add .
+   git commit -m "Setup auto deployment"
    git push origin main
    ```
 
-**就这样!** 每次推送到 `main` 分支会自动:
-- ✅ 构建项目
+**工作原理**:
+
+每次推送到 `main` 分支,GitHub Actions 会自动:
+- ✅ 安装依赖
+- ✅ 执行构建 (`npm run build`)
 - ✅ 部署到 Cloudflare Pages
-- ✅ 运行数据库迁移 (仅生产环境)
+- ✅ 触发重新部署 (应用最新绑定)
 
 查看部署状态:
-- GitHub: **Actions** 标签页
-- Cloudflare: **Workers & Pages** → **lubulu** → **Deployments**
+- GitHub: 仓库的 **Actions** 标签页
+- Cloudflare: **Workers & Pages** → 你的项目 → **Deployments**
 
-**工作流文件:**
-- `.github/workflows/deploy.yml` - 简单部署
-- `.github/workflows/ci-cd.yml` - 完整 CI/CD (含预览环境)
+**工作流文件**: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
 
-### 方式二: CLI (手动)
+---
 
-```bash
-npm run deploy
-```
+### 其他部署方式
 
-### 方式三: Cloudflare Dashboard 集成
-
-1. 推送代码到 GitHub
-2. 在 Cloudflare Dashboard 连接仓库
-3. 配置构建设置:
-   - **构建命令**: `npm run build`
-   - **输出目录**: `dist`
-4. 推送时自动部署
-
-### 方式四: 一次性手动部署
+#### 手动 CLI 部署
 
 ```bash
 npm run build
-npx wrangler pages deploy dist
+npx wrangler pages deploy dist --project-name=lubulu
 ```
+
+**注意**: 仍需在 Dashboard 中手动绑定 KV 和 D1。
+
+#### Cloudflare Git 集成
+
+如果不使用 GitHub Actions,可以在 Cloudflare Dashboard 中配置 Git 集成:
+
+1. **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**
+2. 选择仓库并配置:
+   - **构建命令**: `npm run build`
+   - **输出目录**: `dist`
+3. 每次推送自动触发构建和部署
+
+**注意**: 仍需按照"快速开始"中的步骤手动绑定 KV 和 D1。
 
 ---
 
