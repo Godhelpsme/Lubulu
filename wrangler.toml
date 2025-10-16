@@ -1,5 +1,4 @@
 name = "lubulu"
-main = "src/worker/index.js"
 compatibility_date = "2024-01-01"
 
 # Pages 配置

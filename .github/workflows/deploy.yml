@@ -38,5 +38,3 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: lubulu
           directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          branch: main

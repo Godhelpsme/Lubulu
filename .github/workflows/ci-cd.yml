@@ -64,8 +64,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: lubulu
           directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          branch: main
 
       - name: Run D1 migrations (Production)
         run: |
@@ -99,8 +97,6 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           projectName: lubulu
           directory: dist
-          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.head_ref || github.ref_name }}
 
       - name: Comment PR with preview URL
         if: github.event_name == 'pull_request'
