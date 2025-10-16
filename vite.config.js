@@ -1,13 +1,13 @@
 import { defineConfig } from 'vite';
+import path from 'path';
 
 export default defineConfig({
+  root: 'public',
   build: {
-    target: 'es2020',
-    minify: 'esbuild'
+    outDir: '../dist',
+    emptyOutDir: true
   },
-
   server: {
-    port: 5173,
-    host: true
+    port: 5173
   }
 });

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Lubulu - A probability-driven decision wheel powered by edge computing" />
+  <title>Lubulu - Decision Wheel</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- 顶部栏 -->
+  <header class="app-bar">
+    <h1>Lubulu</h1>
+    <button id="settingsBtn" class="icon-btn">⚙️</button>
+  </header>
+
+  <main>
+    <!-- 转盘区域 -->
+    <section class="roulette-section">
+      <div class="roulette-card">
+        <canvas id="rouletteCanvas" width="400" height="400"></canvas>
+        <button id="spinBtn" class="spin-btn">SPIN</button>
+
+        <!-- 结果显示 -->
+        <div id="resultDisplay" class="result-display hidden">
+          <div class="result-text"></div>
+          <div class="pity-notice hidden">🎯 保底触发!</div>
+          <button id="confirmResult" class="confirm-btn">确定</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 统计区域 -->
+    <section class="stats-section">
+      <div class="stats-card">
+        <h3>统计记录</h3>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-number success" id="luCount">0</div>
+            <div class="stat-label">Lu次数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number failure" id="noLuCount">0</div>
+            <div class="stat-label">不Lu次数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number total" id="totalCount">0</div>
+            <div class="stat-label">总次数</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number rate" id="successRate">0%</div>
+            <div class="stat-label">克制率</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 日历区域 -->
+    <section class="calendar-section">
+      <div class="calendar-card" id="calendar"></div>
+    </section>
+  </main>
+
+  <!-- 设置对话框 -->
+  <div id="settingsDialog" class="dialog hidden">
+    <div class="dialog-content">
+      <h3>设置</h3>
+
+      <div class="setting-item">
+        <label for="luProbability">Lu概率:</label>
+        <input type="range" id="luProbability" min="1" max="98" value="1">
+        <span id="luProbabilityValue">1</span>%
+      </div>
+
+      <div class="setting-item">
+        <label for="pityDays">保底天数:</label>
+        <input type="number" id="pityDays" min="0" max="365" value="0">
+        <span class="hint">0 = 不启用保底</span>
+      </div>
+
+      <div class="setting-item">
+        <label>
+          <input type="checkbox" id="multiMode">
+          多次模式 (每天可多次抽取)
+        </label>
+      </div>
+
+      <div class="dialog-actions">
+        <button id="settingsCancelBtn" class="btn-secondary">取消</button>
+        <button id="settingsSaveBtn" class="btn-primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 遮罩层 -->
+  <div id="overlay" class="overlay hidden"></div>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

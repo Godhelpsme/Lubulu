@@ -1,23 +1,30 @@
 {
   "name": "lubulu",
-  "version": "3.0.0-slim",
-  "description": "Lubulu - 简约决策转盘应用",
+  "version": "1.0.0",
+  "description": "A probability-driven decision wheel powered by edge computing",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "node --test tests/*.test.js"
-  },
-  "dependencies": {},
-  "devDependencies": {
-    "vite": "^5.0.0"
+    "preview": "npm run build && wrangler pages dev dist",
+    "deploy": "npm run build && wrangler pages deploy dist",
+    "db:create": "wrangler d1 create lubulu-db",
+    "db:migrate": "wrangler d1 migrations apply lubulu-db --remote",
+    "db:local": "wrangler d1 migrations apply lubulu-db --local",
+    "kv:create": "wrangler kv:namespace create SETTINGS"
   },
   "keywords": [
-    "roulette",
-    "decision",
-    "probability"
+    "decision-making",
+    "probability",
+    "edge-computing",
+    "cloudflare-workers",
+    "roulette"
   ],
   "author": "Lubulu Team",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "wrangler": "^3.78.0"
+  }
 }

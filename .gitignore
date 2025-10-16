@@ -1,20 +1,17 @@
-# Dependencies
 node_modules/
-
-# Build outputs
 dist/
-
-# Logs
+.wrangler/
 *.log
-npm-debug.log*
+.env
+.dev.vars
+*.local
 
-# OS files
+# OS
 .DS_Store
 Thumbs.db
 
-# Editor directories
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-.claude/
