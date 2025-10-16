@@ -364,13 +364,49 @@ CREATE INDEX idx_user_timestamp ON spin_history(user_id, timestamp);
 
 ## 部署
 
-### 方式一: CLI (最快)
+### 方式一: GitHub Actions (推荐) 🤖
+
+推送到 `main` 分支自动部署。
+
+**配置 (一次性):**
+
+1. 获取 Cloudflare 凭证:
+   - 访问 [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - **API Token**: 个人资料 → API Tokens → 创建 Token (使用 "Edit Cloudflare Workers" 模板)
+   - **Account ID**: 从 Dashboard 首页复制
+
+2. 添加 Secrets 到 GitHub 仓库:
+   - 进入 **Settings** → **Secrets and variables** → **Actions**
+   - 点击 **New repository secret**
+   - 添加:
+     - `CLOUDFLARE_API_TOKEN` - 你的 API token
+     - `CLOUDFLARE_ACCOUNT_ID` - 你的 account ID
+
+3. 推送代码触发部署:
+   ```bash
+   git push origin main
+   ```
+
+**就这样!** 每次推送到 `main` 分支会自动:
+- ✅ 构建项目
+- ✅ 部署到 Cloudflare Pages
+- ✅ 运行数据库迁移 (仅生产环境)
+
+查看部署状态:
+- GitHub: **Actions** 标签页
+- Cloudflare: **Workers & Pages** → **lubulu** → **Deployments**
+
+**工作流文件:**
+- `.github/workflows/deploy.yml` - 简单部署
+- `.github/workflows/ci-cd.yml` - 完整 CI/CD (含预览环境)
+
+### 方式二: CLI (手动)
 
 ```bash
 npm run deploy
 ```
 
-### 方式二: GitHub 集成
+### 方式三: Cloudflare Dashboard 集成
 
 1. 推送代码到 GitHub
 2. 在 Cloudflare Dashboard 连接仓库
@@ -379,7 +415,7 @@ npm run deploy
    - **输出目录**: `dist`
 4. 推送时自动部署
 
-### 方式三: 手动部署
+### 方式四: 一次性手动部署
 
 ```bash
 npm run build

@@ -364,13 +364,49 @@ First Visit → Generate UUID → Store in Cookie (1yr TTL)
 
 ## Deployment
 
-### Option 1: CLI (Fastest)
+### Option 1: GitHub Actions (Recommended) 🤖
+
+Automatic deployment on every push to `main` branch.
+
+**Setup (One-time):**
+
+1. Get Cloudflare credentials:
+   - Visit [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - **API Token**: Profile → API Tokens → Create Token (use "Edit Cloudflare Workers" template)
+   - **Account ID**: Copy from Dashboard homepage
+
+2. Add secrets to GitHub repository:
+   - Go to **Settings** → **Secrets and variables** → **Actions**
+   - Click **New repository secret**
+   - Add:
+     - `CLOUDFLARE_API_TOKEN` - Your API token
+     - `CLOUDFLARE_ACCOUNT_ID` - Your account ID
+
+3. Push to trigger deployment:
+   ```bash
+   git push origin main
+   ```
+
+**That's it!** Every push to `main` will:
+- ✅ Build the project
+- ✅ Deploy to Cloudflare Pages
+- ✅ Run database migrations (production only)
+
+Check deployment status:
+- GitHub: **Actions** tab
+- Cloudflare: **Workers & Pages** → **lubulu** → **Deployments**
+
+**Workflow files:**
+- `.github/workflows/deploy.yml` - Simple deployment
+- `.github/workflows/ci-cd.yml` - Full CI/CD with preview environments
+
+### Option 2: CLI (Manual)
 
 ```bash
 npm run deploy
 ```
 
-### Option 2: GitHub Integration
+### Option 3: Cloudflare Dashboard Integration
 
 1. Push to GitHub
 2. Connect repo in Cloudflare Dashboard
@@ -379,7 +415,7 @@ npm run deploy
    - **Output**: `dist`
 4. Auto-deploy on push
 
-### Option 3: Manual
+### Option 4: One-time Manual Deploy
 
 ```bash
 npm run build
