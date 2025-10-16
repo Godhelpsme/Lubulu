@@ -3,7 +3,6 @@
  * 处理 API 请求 + 静态资源
  */
 
-import { Router } from './router.js';
 import { handleSpin } from './handlers/spin.js';
 import { handleHistory } from './handlers/history.js';
 import { handleSettings } from './handlers/settings.js';
