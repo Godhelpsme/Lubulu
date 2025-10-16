@@ -86,6 +86,20 @@
         </label>
       </div>
 
+      <!-- UUID 备份功能 -->
+      <div class="setting-section">
+        <h4>账号备份</h4>
+        <p class="warning-text">⚠️ 重要: 清除浏览器数据会丢失您的所有记录。请定期备份您的账号ID。</p>
+        <div class="backup-actions">
+          <button id="exportUuidBtn" class="btn-secondary">导出账号ID</button>
+          <button id="importUuidBtn" class="btn-secondary">导入账号ID</button>
+          <input type="file" id="uuidFileInput" accept=".txt" style="display: none;">
+        </div>
+        <div class="uuid-display">
+          <small>当前账号ID: <code id="currentUuid"></code></small>
+        </div>
+      </div>
+
       <div class="dialog-actions">
         <button id="settingsCancelBtn" class="btn-secondary">取消</button>
         <button id="settingsSaveBtn" class="btn-primary">保存</button>

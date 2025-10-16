@@ -16,19 +16,34 @@ export async function handleSpin(context) {
   const kv = new KVStorage(env.SETTINGS);
   const db = new D1Storage(env.DB);
 
+  // 0. 解析请求体获取客户端日期
+  let body = {};
+  try {
+    const text = await request.text();
+    body = text ? JSON.parse(text) : {};
+  } catch (e) {
+    // 空请求体或解析失败,使用默认值
+  }
+
   // 1. 获取用户设置
   const settings = await kv.getSettings(userId);
   const pityCounter = await kv.getPityCounter(userId);
 
-  // 2. 检查今日是否已抽取
-  const today = getTodayDate();
+  // 2. 检查今日是否已抽取 - 优先使用客户端传递的日期
+  const today = body.date || getTodayDate();
   const history = await db.getHistory(userId, 1);
 
+  // 如果今日已抽取(单模式),返回缓存结果
   if (!settings.multiMode && history[today]) {
+    const cached = history[today];
     return jsonResponse({
-      error: 'Already spun today',
-      result: history[today]
-    }, 400);
+      alreadySpun: true,
+      cached: true,
+      result: cached.result,
+      isLu: cached.result === 'lu',
+      isPityTriggered: cached.isPityTriggered,
+      date: today
+    }, 200);  // 200 而不是 400 - 这不是错误
   }
 
   // 3. 判断是否触发保底
@@ -65,8 +80,12 @@ export async function handleSpin(context) {
   });
 }
 
+/**
+ * 获取今日日期 (UTC fallback)
+ * 注意: 优先使用客户端传递的日期以避免时区问题
+ */
 function getTodayDate() {
-  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  return new Date().toISOString().split('T')[0]; // YYYY-MM-DD (UTC)
 }
 
 function jsonResponse(data, status = 200) {

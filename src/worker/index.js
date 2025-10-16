@@ -36,14 +36,19 @@ export default {
       const context = { env, userId, request };
 
       try {
-        switch (url.pathname) {
-          case '/api/spin':
+        // 支持版本化和无版本路径(向后兼容)
+        const path = url.pathname
+          .replace(/^\/api\/v1/, '/api')  // v1 映射到当前实现
+          .replace(/^\/api/, '');
+
+        switch (path) {
+          case '/spin':
             return await handleSpin(context);
-          case '/api/history':
+          case '/history':
             return await handleHistory(context);
-          case '/api/settings':
+          case '/settings':
             return await handleSettings(context);
-          case '/api/stats':
+          case '/stats':
             return await handleStats(context);
           default:
             return jsonResponse({ error: 'Not Found' }, 404);

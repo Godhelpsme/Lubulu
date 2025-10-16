@@ -63,7 +63,7 @@ export class D1Storage {
     results.forEach(row => {
       history[row.date] = {
         result: row.result,
-        isPityTriggered: row.is_pity === 1,
+        isPityTriggered: Boolean(row.is_pity),  // is_pity 现在是 BOOLEAN
         timestamp: new Date(row.timestamp * 1000).toISOString()
       };
     });
@@ -71,7 +71,10 @@ export class D1Storage {
     return history;
   }
 
-  async saveHistoryRecord(userId, date, result, isPityTriggered = false) {
+  /**
+   * 保存历史记录 - 带重试机制处理并发冲突
+   */
+  async saveHistoryRecord(userId, date, result, isPityTriggered = false, maxRetries = 3) {
     const stmt = this.db.prepare(`
       INSERT INTO spin_history (user_id, date, result, is_pity, timestamp)
       VALUES (?, ?, ?, ?, ?)
@@ -80,12 +83,26 @@ export class D1Storage {
     `);
 
     const timestamp = Math.floor(Date.now() / 1000);
-    const isPity = isPityTriggered ? 1 : 0;
 
-    await stmt.bind(
-      userId, date, result, isPity, timestamp,
-      result, isPity, timestamp
-    ).run();
+    // 指数退避重试
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        await stmt.bind(
+          userId, date, result, isPityTriggered, timestamp,
+          result, isPityTriggered, timestamp
+        ).run();
+        return; // 成功,退出
+      } catch (error) {
+        // 如果是 UNIQUE 约束冲突且还有重试次数,继续重试
+        if (error.message.includes('UNIQUE constraint') && attempt < maxRetries - 1) {
+          const backoffMs = 50 * Math.pow(2, attempt); // 50ms, 100ms, 200ms
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          continue;
+        }
+        // 其他错误或重试耗尽,抛出
+        throw error;
+      }
+    }
   }
 
   async deleteHistoryRecord(userId, date) {

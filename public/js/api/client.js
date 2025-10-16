@@ -47,8 +47,15 @@ class ApiClient {
 
   // === API 方法 ===
 
+  /**
+   * 执行抽取 - 传递客户端本地日期以避免时区问题
+   */
   async spin() {
-    return this.request('/spin', { method: 'POST' });
+    const localDate = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD format
+    return this.request('/spin', {
+      method: 'POST',
+      body: JSON.stringify({ date: localDate })
+    });
   }
 
   async getHistory(limit = 100) {
@@ -88,6 +95,14 @@ class ApiClient {
   setCookie(name, value, days) {
     const expires = new Date(Date.now() + days * 86400000).toUTCString();
     document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+  }
+
+  /**
+   * 设置用户 ID (用于导入备份)
+   */
+  setUserId(userId) {
+    this.userId = userId;
+    this.setCookie('lubulu_uid', userId, 365);
   }
 }
 

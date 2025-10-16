@@ -44,6 +44,12 @@ class App {
     this.pityDaysInput = document.getElementById('pityDays');
     this.multiModeInput = document.getElementById('multiMode');
 
+    // UUID 备份
+    this.exportUuidBtn = document.getElementById('exportUuidBtn');
+    this.importUuidBtn = document.getElementById('importUuidBtn');
+    this.uuidFileInput = document.getElementById('uuidFileInput');
+    this.currentUuidEl = document.getElementById('currentUuid');
+
     // 日历
     this.calendarEl = document.getElementById('calendar');
   }
@@ -69,6 +75,11 @@ class App {
       this.luProbabilityValue.textContent = e.target.value;
       this.roulette.setProbability(parseInt(e.target.value));
     });
+
+    // UUID 备份
+    this.exportUuidBtn.addEventListener('click', () => this.exportUuid());
+    this.importUuidBtn.addEventListener('click', () => this.uuidFileInput.click());
+    this.uuidFileInput.addEventListener('change', (e) => this.importUuid(e.target.files[0]));
   }
 
   async loadData() {
@@ -165,6 +176,9 @@ class App {
     this.pityDaysInput.value = this.settings.pityDays;
     this.multiModeInput.checked = this.settings.multiMode;
 
+    // 显示当前 UUID
+    this.currentUuidEl.textContent = api.getUserId();
+
     this.settingsDialog.classList.remove('hidden');
     this.overlay.classList.remove('hidden');
   }
@@ -189,6 +203,45 @@ class App {
     } catch (error) {
       alert('保存失败: ' + error.message);
     }
+  }
+
+  // UUID 导出功能
+  exportUuid() {
+    const uuid = api.getUserId();
+    const blob = new Blob([uuid], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lubulu-backup-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('账号ID已导出!请妥善保管此文件。');
+  }
+
+  // UUID 导入功能
+  async importUuid(file) {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const uuid = e.target.result.trim();
+
+      // 验证 UUID 格式
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(uuid)) {
+        alert('无效的账号ID格式!');
+        return;
+      }
+
+      if (confirm('导入账号ID将替换当前账号的所有数据。确定要继续吗?')) {
+        api.setUserId(uuid);
+        alert('账号ID已导入!页面将重新加载。');
+        location.reload();
+      }
+    };
+    reader.readAsText(file);
   }
 }
 

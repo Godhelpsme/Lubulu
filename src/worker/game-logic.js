@@ -2,6 +2,11 @@
  * 游戏逻辑 - 纯函数,可在 Worker 和客户端复用
  */
 
+// 概率边界常量
+const MIN_PROBABILITY = 1;
+const MAX_PROBABILITY = 98;
+const TOTAL_SLICES = 100;
+
 /**
  * 生成安全随机数 [min, max)
  */
@@ -16,13 +21,13 @@ export function getSecureRandom(min, max) {
  * 游戏逻辑类
  */
 export class GameLogic {
-  constructor(probability = 1) {
+  constructor(probability = MIN_PROBABILITY) {
     this.setProbability(probability);
   }
 
   setProbability(value) {
-    this.probability = Math.max(1, Math.min(98, value));
-    this.totalSlices = 100;
+    this.probability = Math.max(MIN_PROBABILITY, Math.min(MAX_PROBABILITY, value));
+    this.totalSlices = TOTAL_SLICES;
   }
 
   get luSliceCount() {
